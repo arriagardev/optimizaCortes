@@ -23,7 +23,14 @@ export default function App() {
         onSolutionReady={store.setSolution}
       />
       <main className="main-area">
-        {store.solution && <SummaryPanel solution={store.solution} />}
+        {store.solution && (
+          <SummaryPanel
+            solution={store.solution}
+            boards={store.boards}
+            pieces={store.pieces}
+            settings={store.settings}
+          />
+        )}
         <CutCanvas results={store.solution?.results ?? []} />
       </main>
     </div>
