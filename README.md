@@ -53,6 +53,32 @@ src/
     └── index.ts            # Board, Piece, PlacedPiece, CutResult, CutSolution, AppSettings
 ```
 
+## Roadmap
+
+### Implementado
+- [x] Algoritmo guillotine bin-packing con heurística Best Area Fit
+- [x] Visualización del layout en canvas HTML5
+- [x] Panel de resumen con estadísticas de eficiencia
+- [x] Exportar reporte en PDF (layout por tablero, tablas de piezas y estadísticas)
+- [x] Deploy automático en GitHub Pages vía GitHub Actions
+
+### Próximas mejoras
+
+#### Alto valor / baja complejidad
+- [ ] **Persistencia en localStorage** — los datos sobreviven al recargar la página
+- [ ] **Exportar / importar proyecto como JSON** — guardar y compartir proyectos
+- [ ] **Diseño responsive** — soporte para pantallas pequeñas y móvil
+
+#### Medio
+- [ ] **Validación de formularios** — mensajes de error para dimensiones inválidas o vacías
+- [ ] **Undo / Redo (Ctrl+Z)** — historial de cambios en el store
+- [ ] **Visualizar desperdicio en el canvas** — zonas de desperdicio coloreadas y líneas de corte explícitas
+
+#### Mayor esfuerzo
+- [ ] **Mejora del algoritmo** — variante guillotine con merge de rectángulos libres para mayor eficiencia
+- [ ] **Múltiples estrategias de optimización** — comparar resultados entre algoritmos
+- [ ] **Reordenar piezas con drag-and-drop** — para priorizar qué piezas se colocan primero
+
 ## Uso
 
 ```bash
