@@ -27,6 +27,7 @@ export default function App() {
         onRemovePiece={store.removePiece}
         onChangeSettings={store.setSettings}
         onSolutionReady={store.setSolution}
+        onLoadProject={store.loadProject}
         isOpen={sidebarOpen}
         onClose={() => setSidebarOpen(false)}
       />

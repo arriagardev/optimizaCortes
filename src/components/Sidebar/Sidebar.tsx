@@ -19,6 +19,7 @@ interface Props {
   onRemovePiece: (id: string) => void
   onChangeSettings: (s: AppSettings) => void
   onSolutionReady: (s: CutSolution) => void
+  onLoadProject: (boards: Board[], pieces: Piece[], settings: AppSettings) => void
   isOpen: boolean
   onClose: () => void
 }
@@ -29,7 +30,7 @@ export function Sidebar({
   boards, pieces, settings,
   onAddBoard, onUpdateBoard, onRemoveBoard,
   onAddPiece, onUpdatePiece, onRemovePiece,
-  onChangeSettings, onSolutionReady,
+  onChangeSettings, onSolutionReady, onLoadProject,
   isOpen, onClose,
 }: Props) {
   const [tab, setTab] = useState<Tab>('boards')
@@ -73,7 +74,13 @@ export function Sidebar({
           </>
         )}
         {tab === 'settings' && (
-          <SettingsPanel settings={settings} onChange={onChangeSettings} />
+          <SettingsPanel
+            settings={settings}
+            onChange={onChangeSettings}
+            boards={boards}
+            pieces={pieces}
+            onLoadProject={onLoadProject}
+          />
         )}
       </div>
 
