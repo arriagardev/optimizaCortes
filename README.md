@@ -1,73 +1,70 @@
-# React + TypeScript + Vite
+# OptimizaCortes
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+Optimizador de cortes para tableros de madera, vidrio u otros materiales planos. Dado un conjunto de tableros y piezas requeridas, calcula la distribución óptima de cortes minimizando el desperdicio de material.
 
-Currently, two official plugins are available:
+## Funcionalidad
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Oxc](https://oxc.rs)
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/)
+- **Tableros**: define uno o más tableros con dimensiones, material y cantidad.
+- **Piezas**: agrega las piezas que necesitas cortar con ancho, alto, cantidad y si se permiten rotaciones.
+- **Configuración**: ajusta el grosor de la cuchilla (sierra) y la unidad de medida (mm, cm, pulgadas).
+- **Optimización**: el algoritmo distribuye automáticamente las piezas sobre los tableros disponibles.
+- **Visualización**: el resultado se muestra en un canvas interactivo con cada tablero y sus cortes etiquetados.
+- **Estadísticas**: panel de resumen con área usada, área total y porcentaje de eficiencia por tablero.
 
-## React Compiler
+## Algoritmo
 
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
+Utiliza **guillotine bin-packing** con la heurística *Best Area Fit*:
 
-## Expanding the ESLint configuration
+1. Las piezas se ordenan de mayor a menor área.
+2. Para cada pieza se busca el espacio libre con menor área sobrante que la contenga (mejor ajuste).
+3. Al colocar una pieza, el espacio restante se divide en dos rectángulos libres (corte en guillotina).
+4. Si una pieza tiene rotación habilitada, se evalúan ambas orientaciones y se elige la de mejor ajuste.
+5. El grosor de la cuchilla se descuenta en cada corte.
 
-If you are developing a production application, we recommend updating the configuration to enable type-aware lint rules:
+## Stack tecnológico
 
-```js
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
+- React 19 + TypeScript (strict)
+- Vite 8
+- Vitest 4 + Testing Library (tests unitarios del algoritmo)
+- CSS Modules (sin frameworks de estilos)
+- Sin librerías de estado externas — estado global en `useCutStore`
 
-      // Remove tseslint.configs.recommended and replace with this
-      tseslint.configs.recommendedTypeChecked,
-      // Alternatively, use this for stricter rules
-      tseslint.configs.strictTypeChecked,
-      // Optionally, add this for stylistic rules
-      tseslint.configs.stylisticTypeChecked,
+## Estructura del proyecto
 
-      // Other configs...
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
+```
+src/
+├── algorithms/
+│   ├── guillotine.ts       # Algoritmo de bin-packing
+│   └── guillotine.test.ts  # Tests unitarios
+├── components/
+│   ├── Canvas/
+│   │   ├── CutCanvas.tsx   # Renderizado del layout en HTML5 Canvas
+│   │   └── SummaryPanel.tsx# Estadísticas de eficiencia
+│   └── Sidebar/
+│       ├── BoardForm.tsx   # Formulario para agregar tableros
+│       ├── BoardList.tsx   # Lista de tableros
+│       ├── PieceForm.tsx   # Formulario para agregar piezas
+│       ├── PieceList.tsx   # Lista de piezas
+│       ├── SettingsPanel.tsx # Configuración (cuchilla, unidad)
+│       └── Sidebar.tsx     # Contenedor del panel lateral
+├── store/
+│   └── cutStore.ts         # Estado global (tableros, piezas, solución, ajustes)
+└── types/
+    └── index.ts            # Board, Piece, PlacedPiece, CutResult, CutSolution, AppSettings
 ```
 
-You can also install [eslint-plugin-react-x](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-x) and [eslint-plugin-react-dom](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-dom) for React-specific lint rules:
+## Uso
 
-```js
-// eslint.config.js
-import reactX from 'eslint-plugin-react-x'
-import reactDom from 'eslint-plugin-react-dom'
+```bash
+# Instalar dependencias
+npm install
 
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
-      // Enable lint rules for React
-      reactX.configs['recommended-typescript'],
-      // Enable lint rules for React DOM
-      reactDom.configs.recommended,
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
+# Servidor de desarrollo
+npm run dev
+
+# Ejecutar tests
+npm test
+
+# Build de producción
+npm run build
 ```
