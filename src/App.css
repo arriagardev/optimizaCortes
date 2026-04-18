@@ -8,18 +8,18 @@ body {
   font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
   background: #f0f2f5;
   color: #222;
-  height: 100vh;
+  height: 100dvh;
   overflow: hidden;
 }
 
 #root {
-  height: 100vh;
+  height: 100dvh;
 }
 
 /* ── Layout ── */
 .app-layout {
   display: flex;
-  height: 100vh;
+  height: 100dvh;
 }
 
 /* ── Sidebar ── */
@@ -35,6 +35,9 @@ body {
 }
 
 .sidebar-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
   padding: 16px 18px 10px;
   border-bottom: 1px solid #dde1e7;
 }
@@ -277,6 +280,54 @@ body {
   color: #7a5000;
 }
 
+/* ── Mobile / responsive ── */
+.sidebar-backdrop {
+  display: none;
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.45);
+  z-index: 99;
+}
+
+.sidebar-close {
+  display: none;
+  background: none;
+  border: none;
+  font-size: 1.3rem;
+  cursor: pointer;
+  color: #777;
+  padding: 0 2px;
+  line-height: 1;
+}
+.sidebar-close:hover { color: #333; }
+
+.mobile-topbar {
+  display: none;
+  align-items: center;
+  gap: 10px;
+  background: #fff;
+  border: 1px solid #dde1e7;
+  border-radius: 8px;
+  padding: 8px 12px;
+}
+
+.btn-menu {
+  background: none;
+  border: none;
+  font-size: 1.4rem;
+  cursor: pointer;
+  padding: 0;
+  color: #333;
+  line-height: 1;
+}
+
+.mobile-title {
+  font-size: 1rem;
+  font-weight: 700;
+  color: #1a56db;
+  letter-spacing: -0.3px;
+}
+
 /* ── Canvas ── */
 .canvas-wrapper {
   flex: 1;
@@ -308,10 +359,13 @@ body {
 }
 .canvas-toolbar button:disabled { opacity: 0.35; cursor: default; }
 
-.cut-canvas {
+.canvas-inner {
   flex: 1;
-  width: 100%;
-  height: 100%;
+  overflow: hidden;
+  min-height: 0;
+}
+
+.cut-canvas {
   display: block;
 }
 
@@ -325,4 +379,74 @@ body {
   border-radius: 8px;
   color: #999;
   font-size: 0.9rem;
+  text-align: center;
+  padding: 16px;
+}
+
+/* ── Responsive breakpoint ── */
+@media (max-width: 768px) {
+  body,
+  #root {
+    height: 100dvh;
+    overflow: hidden;
+  }
+
+  .app-layout {
+    flex-direction: column;
+    height: 100dvh;
+  }
+
+  /* Sidebar becomes a fixed overlay */
+  .sidebar {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: min(85vw, 320px);
+    height: 100dvh;
+    z-index: 100;
+    transform: translateX(-100%);
+    transition: transform 0.25s ease;
+    box-shadow: 4px 0 20px rgba(0, 0, 0, 0.2);
+  }
+
+  .sidebar.open {
+    transform: translateX(0);
+  }
+
+  .sidebar-backdrop.visible {
+    display: block;
+  }
+
+  .sidebar-close {
+    display: block;
+  }
+
+  /* Show mobile top bar */
+  .mobile-topbar {
+    display: flex;
+    flex-shrink: 0;
+  }
+
+  /* Tighter main area */
+  .main-area {
+    padding: 8px;
+    gap: 8px;
+  }
+
+  /* Summary stats wrap on narrow screens */
+  .summary-stats {
+    flex-wrap: wrap;
+    gap: 12px;
+  }
+
+  /* Narrower label min-width in forms */
+  .form-row label {
+    min-width: 76px;
+  }
+
+  /* Canvas min heights so it's usable on small screens */
+  .canvas-wrapper,
+  .canvas-empty {
+    min-height: 200px;
+  }
 }
