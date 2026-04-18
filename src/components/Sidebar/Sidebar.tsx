@@ -19,6 +19,8 @@ interface Props {
   onRemovePiece: (id: string) => void
   onChangeSettings: (s: AppSettings) => void
   onSolutionReady: (s: CutSolution) => void
+  isOpen: boolean
+  onClose: () => void
 }
 
 type Tab = 'boards' | 'pieces' | 'settings'
@@ -28,18 +30,21 @@ export function Sidebar({
   onAddBoard, onUpdateBoard, onRemoveBoard,
   onAddPiece, onUpdatePiece, onRemovePiece,
   onChangeSettings, onSolutionReady,
+  isOpen, onClose,
 }: Props) {
   const [tab, setTab] = useState<Tab>('boards')
 
   function handleOptimize() {
     const solution = guillotineCut(boards, pieces, settings.bladeThickness)
     onSolutionReady(solution)
+    onClose()
   }
 
   return (
-    <aside className="sidebar">
+    <aside className={`sidebar${isOpen ? ' open' : ''}`}>
       <div className="sidebar-header">
         <h2>OptimizaCortes</h2>
+        <button className="sidebar-close" onClick={onClose} aria-label="Cerrar menú">✕</button>
       </div>
 
       <nav className="tab-nav">

@@ -1,7 +1,6 @@
 import { useRef, useEffect, useState } from 'react'
 import type { CutResult } from '../../types'
 
-// Distinct palette for placed pieces
 const COLORS = [
   '#4E9AF1', '#F1A94E', '#E45C55', '#5CB85C', '#9B59B6',
   '#1ABC9C', '#F39C12', '#2980B9', '#E74C3C', '#27AE60',
@@ -13,9 +12,24 @@ interface Props {
 
 export function CutCanvas({ results }: Props) {
   const canvasRef = useRef<HTMLCanvasElement>(null)
+  const innerRef = useRef<HTMLDivElement>(null)
   const [currentBoard, setCurrentBoard] = useState(0)
+  const [canvasSize, setCanvasSize] = useState({ width: 900, height: 600 })
 
   const result = results[currentBoard]
+
+  useEffect(() => {
+    const el = innerRef.current
+    if (!el) return
+    const ro = new ResizeObserver(() => {
+      const { clientWidth, clientHeight } = el
+      if (clientWidth > 0 && clientHeight > 0) {
+        setCanvasSize({ width: clientWidth, height: clientHeight })
+      }
+    })
+    ro.observe(el)
+    return () => ro.disconnect()
+  }, [])
 
   useEffect(() => {
     const canvas = canvasRef.current
@@ -39,19 +53,16 @@ export function CutCanvas({ results }: Props) {
 
     ctx.clearRect(0, 0, canvas.width, canvas.height)
 
-    // Board background
     ctx.fillStyle = '#F5F0E8'
     ctx.fillRect(offsetX, offsetY, drawW, drawH)
     ctx.strokeStyle = '#666'
     ctx.lineWidth = 2
     ctx.strokeRect(offsetX, offsetY, drawW, drawH)
 
-    // Board label
     ctx.fillStyle = '#333'
     ctx.font = '13px sans-serif'
     ctx.fillText(`${result.boardWidth} × ${result.boardHeight} mm`, offsetX, offsetY - 6)
 
-    // Placed pieces
     result.placedPieces.forEach((piece, i) => {
       const px = offsetX + piece.x * scale
       const py = offsetY + piece.y * scale
@@ -65,7 +76,6 @@ export function CutCanvas({ results }: Props) {
       ctx.lineWidth = 1.5
       ctx.strokeRect(px, py, pw, ph)
 
-      // Piece label (only if big enough)
       if (pw > 30 && ph > 18) {
         ctx.fillStyle = '#000'
         ctx.font = `${Math.min(12, ph * 0.3)}px sans-serif`
@@ -77,12 +87,11 @@ export function CutCanvas({ results }: Props) {
       }
     })
 
-    // Efficiency badge
     const eff = (result.efficiency * 100).toFixed(1)
     ctx.fillStyle = '#222'
     ctx.font = '14px sans-serif'
     ctx.fillText(`Eficiencia: ${eff}%  |  ${result.placedPieces.length} piezas`, offsetX, offsetY + drawH + 18)
-  }, [result])
+  }, [result, canvasSize])
 
   if (results.length === 0) {
     return (
@@ -99,7 +108,9 @@ export function CutCanvas({ results }: Props) {
         <span>Tablero {currentBoard + 1} / {results.length}</span>
         <button disabled={currentBoard === results.length - 1} onClick={() => setCurrentBoard(c => c + 1)}>›</button>
       </div>
-      <canvas ref={canvasRef} width={900} height={600} className="cut-canvas" />
+      <div className="canvas-inner" ref={innerRef}>
+        <canvas ref={canvasRef} width={canvasSize.width} height={canvasSize.height} className="cut-canvas" />
+      </div>
     </div>
   )
 }
