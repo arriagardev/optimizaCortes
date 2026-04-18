@@ -1,0 +1,3 @@
+/* Base reset — App.css handles the actual styles */
+*, *::before, *::after { box-sizing: border-box; }
+body { margin: 0; }
