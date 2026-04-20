@@ -55,6 +55,7 @@ export default function App() {
         onAddPiece={store.addPiece}
         onUpdatePiece={store.updatePiece}
         onRemovePiece={store.removePiece}
+        onReorderPiece={store.reorderPieces}
         onChangeSettings={store.setSettings}
         onSolutionReady={store.setSolution}
         onExport={handleExport}

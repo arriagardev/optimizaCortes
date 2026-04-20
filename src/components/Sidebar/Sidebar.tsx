@@ -6,6 +6,7 @@ import { PieceList } from './PieceList'
 import { SettingsPanel } from './SettingsPanel'
 import type { Board, Piece, AppSettings, CutSolution } from '../../types'
 import { guillotineCut } from '../../algorithms/guillotine'
+import { maxrectsCut } from '../../algorithms/maxrects'
 
 interface Props {
   boards: Board[]
@@ -18,6 +19,7 @@ interface Props {
   onAddPiece: (p: Omit<Piece, 'id'>) => void
   onUpdatePiece: (id: string, u: Partial<Piece>) => void
   onRemovePiece: (id: string) => void
+  onReorderPiece: (fromIdx: number, toIdx: number) => void
   onChangeSettings: (s: AppSettings) => void
   onSolutionReady: (s: CutSolution) => void
   onExport: () => void
@@ -30,7 +32,7 @@ type Tab = 'boards' | 'pieces' | 'settings'
 export function Sidebar({
   boards, pieces, settings, isOpen,
   onAddBoard, onUpdateBoard, onRemoveBoard,
-  onAddPiece, onUpdatePiece, onRemovePiece,
+  onAddPiece, onUpdatePiece, onRemovePiece, onReorderPiece,
   onChangeSettings, onSolutionReady,
   onExport, onImportFile, onClose,
 }: Props) {
@@ -38,7 +40,20 @@ export function Sidebar({
   const fileInputRef = useRef<HTMLInputElement>(null)
 
   function handleOptimize() {
-    const solution = guillotineCut(boards, pieces, settings.bladeThickness)
+    const bt = settings.bladeThickness
+    let solution: CutSolution
+
+    if (settings.algorithm === 'guillotine') {
+      solution = guillotineCut(boards, pieces, bt)
+    } else if (settings.algorithm === 'maxrects') {
+      solution = maxrectsCut(boards, pieces, bt)
+    } else {
+      // auto: run both and pick the one with higher efficiency
+      const g = guillotineCut(boards, pieces, bt)
+      const m = maxrectsCut(boards, pieces, bt)
+      solution = m.totalEfficiency >= g.totalEfficiency ? m : g
+    }
+
     onSolutionReady(solution)
     onClose()
   }
@@ -82,7 +97,7 @@ export function Sidebar({
         {tab === 'pieces' && (
           <>
             <PieceForm onAdd={onAddPiece} />
-            <PieceList pieces={pieces} onRemove={onRemovePiece} onUpdate={onUpdatePiece} />
+            <PieceList pieces={pieces} onRemove={onRemovePiece} onUpdate={onUpdatePiece} onReorder={onReorderPiece} />
           </>
         )}
         {tab === 'settings' && (

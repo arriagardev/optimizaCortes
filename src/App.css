@@ -248,6 +248,50 @@ body {
   margin-top: 8px;
 }
 
+/* ── Drag handle ── */
+.drag-handle {
+  cursor: grab;
+  color: #bbb;
+  font-size: 0.95rem;
+  flex-shrink: 0;
+  user-select: none;
+  padding: 0 2px;
+  line-height: 1;
+}
+.drag-handle:active { cursor: grabbing; }
+
+.item-row.dragging {
+  opacity: 0.4;
+}
+
+.item-row.drag-over {
+  border-color: #1a56db;
+  background: #eef3fd;
+}
+
+/* ── Algorithm badge ── */
+.algo-badge {
+  display: inline-block;
+  padding: 1px 7px;
+  border-radius: 10px;
+  font-size: 0.68rem;
+  font-weight: 600;
+  letter-spacing: 0.2px;
+  vertical-align: middle;
+}
+
+.algo-badge--guillotine {
+  background: #e0f2fe;
+  color: #0369a1;
+  border: 1px solid #bae6fd;
+}
+
+.algo-badge--maxrects {
+  background: #f0fdf4;
+  color: #15803d;
+  border: 1px solid #bbf7d0;
+}
+
 /* ── Main area ── */
 .main-area {
   flex: 1;

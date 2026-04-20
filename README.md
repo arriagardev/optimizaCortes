@@ -11,15 +11,22 @@ Optimizador de cortes para tableros de madera, vidrio u otros materiales planos.
 - **Visualización**: el resultado se muestra en un canvas interactivo con cada tablero y sus cortes etiquetados.
 - **Estadísticas**: panel de resumen con área usada, área total y porcentaje de eficiencia por tablero.
 
-## Algoritmo
+## Algoritmos
 
-Utiliza **guillotine bin-packing** con la heurística *Best Area Fit*:
+La app incluye dos algoritmos de bin-packing seleccionables desde la configuración:
 
+### Guillotine — Best Area Fit
 1. Las piezas se ordenan de mayor a menor área.
-2. Para cada pieza se busca el espacio libre con menor área sobrante que la contenga (mejor ajuste).
+2. Para cada pieza se busca el espacio libre con menor área sobrante (mejor ajuste).
 3. Al colocar una pieza, el espacio restante se divide en dos rectángulos libres (corte en guillotina).
-4. Si una pieza tiene rotación habilitada, se evalúan ambas orientaciones y se elige la de mejor ajuste.
-5. El grosor de la cuchilla se descuenta en cada corte.
+
+### Maximal Rectangles — Best Short Side Fit
+1. Mantiene un conjunto de todos los rectángulos libres maximales.
+2. Puntúa cada candidato como `min(ancho sobrante, alto sobrante)` — minimiza el desperdicio del lado más corto.
+3. Tras cada colocación divide los rectángulos afectados en cuatro fragmentos y poda los contenidos en otros.
+
+### Modo Auto
+En modo *Auto* (predeterminado) ambos algoritmos se ejecutan y se usa el resultado con mayor eficiencia promedio.
 
 ## Stack tecnológico
 
@@ -34,7 +41,8 @@ Utiliza **guillotine bin-packing** con la heurística *Best Area Fit*:
 ```
 src/
 ├── algorithms/
-│   ├── guillotine.ts       # Algoritmo de bin-packing
+│   ├── guillotine.ts       # Guillotine bin-packing (Best Area Fit)
+│   ├── maxrects.ts         # Maximal Rectangles bin-packing (BSSF)
 │   └── guillotine.test.ts  # Tests unitarios
 ├── components/
 │   ├── Canvas/
@@ -69,12 +77,9 @@ src/
 - [x] **Visualizar desperdicio en el canvas** — trama diagonal sobre zonas sin corte
 - [x] **Colores consistentes por dimensión** — misma pieza = mismo color en canvas, lista y PDF
 
-### Próximas mejoras
-
-#### Mayor esfuerzo
-- [ ] **Mejora del algoritmo** — variante guillotine con merge de rectángulos libres para mayor eficiencia
-- [ ] **Múltiples estrategias de optimización** — comparar resultados entre algoritmos
-- [ ] **Reordenar piezas con drag-and-drop** — para priorizar qué piezas se colocan primero
+- [x] **Maximal Rectangles (MaxRects)** — segundo algoritmo con heurística Best Short Side Fit
+- [x] **Múltiples estrategias de optimización** — selector Guillotine / MaxRects / Auto en configuración; modo Auto ejecuta ambos y elige el de mayor eficiencia
+- [x] **Reordenar piezas con drag-and-drop** — arrastra el handle ⠿ para priorizar qué piezas se colocan primero
 
 ## Uso
 

@@ -4,10 +4,10 @@ import type { Board, Piece, CutSolution, AppSettings } from '../types'
 const STORAGE_KEY = 'optimizaCortes_v1'
 const MAX_HISTORY = 30
 
+const DEFAULT_SETTINGS: AppSettings = { bladeThickness: 3, unit: 'mm', algorithm: 'auto' }
 const DEFAULT_BOARDS: Board[] = [
   { id: 'b1', width: 2440, height: 1220, material: 'MDF', quantity: 1 },
 ]
-const DEFAULT_SETTINGS: AppSettings = { bladeThickness: 3, unit: 'mm' }
 
 interface SavedProject {
   boards: Board[]
@@ -48,7 +48,11 @@ export function useCutStore() {
   const [boards, setBoards] = useState<Board[]>(saved?.boards ?? DEFAULT_BOARDS)
   const [pieces, setPieces] = useState<Piece[]>(saved?.pieces ?? [])
   const [solution, setSolution] = useState<CutSolution | null>(null)
-  const [settings, setSettings] = useState<AppSettings>(saved?.settings ?? DEFAULT_SETTINGS)
+  // Spread defaults so new fields are present even on old stored data
+  const [settings, setSettings] = useState<AppSettings>({
+    ...DEFAULT_SETTINGS,
+    ...(saved?.settings ?? {}),
+  })
   const [past, setPast] = useState<Snapshot[]>([])
   const [future, setFuture] = useState<Snapshot[]>([])
 
@@ -56,7 +60,6 @@ export function useCutStore() {
     localStorage.setItem(STORAGE_KEY, JSON.stringify({ boards, pieces, settings }))
   }, [boards, pieces, settings])
 
-  // Saves a snapshot of the given state before a destructive action
   function pushSnapshot(b: Board[], p: Piece[], s: AppSettings) {
     setPast(prev => [...prev.slice(-(MAX_HISTORY - 1)), { boards: b, pieces: p, settings: s }])
     setFuture([])
@@ -67,7 +70,8 @@ export function useCutStore() {
     syncCounters(newBoards, newPieces)
     setBoards(newBoards)
     setPieces(newPieces)
-    setSettings(newSettings)
+    // Spread defaults so imported old files still get new setting fields
+    setSettings({ ...DEFAULT_SETTINGS, ...newSettings })
     setSolution(null)
   }, [boards, pieces, settings])
 
@@ -99,6 +103,15 @@ export function useCutStore() {
     setPieces(prev => prev.filter(p => p.id !== id))
   }, [boards, pieces, settings])
 
+  const reorderPieces = useCallback((fromIdx: number, toIdx: number) => {
+    setPieces(prev => {
+      const next = [...prev]
+      const [moved] = next.splice(fromIdx, 1)
+      next.splice(toIdx, 0, moved)
+      return next
+    })
+  }, [])
+
   const undo = useCallback(() => {
     if (past.length === 0) return
     const snap = past[past.length - 1]
@@ -128,7 +141,7 @@ export function useCutStore() {
     setSolution, setSettings,
     addBoard, updateBoard, removeBoard,
     addPiece, updatePiece, removePiece,
-    loadProject,
+    reorderPieces, loadProject,
     undo, redo,
     canUndo: past.length > 0,
     canRedo: future.length > 0,

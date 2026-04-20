@@ -16,10 +16,14 @@ interface PieceInstance {
 }
 
 /**
- * Guillotine bin packing algorithm (Best Area Fit heuristic).
- * Splits free rectangles using guillotine cuts after each placement.
+ * Maximal Rectangles bin-packing with Best Short Side Fit (BSSF) heuristic.
+ *
+ * After each placement the occupied zone (piece + blade kerf, clamped to board
+ * boundary) is split against every existing free rectangle with a 4-way split.
+ * Rectangles fully contained within another are pruned. BSSF scores a candidate
+ * as min(rect.w - piece.w, rect.h - piece.h) — lower score = less short-side waste.
  */
-export function guillotineCut(
+export function maxrectsCut(
   boards: Board[],
   pieces: Piece[],
   bladeThickness = 3,
@@ -50,14 +54,14 @@ export function guillotineCut(
     }
   }
 
-  const unplacedPieceIds = new Set(remaining.map(r => r.pieceId))
-  const unplacedPieces = pieces.filter(p => unplacedPieceIds.has(p.id))
+  const unplacedIds = new Set(remaining.map(r => r.pieceId))
+  const unplacedPieces = pieces.filter(p => unplacedIds.has(p.id))
   const totalEfficiency =
     results.length > 0
       ? results.reduce((sum, r) => sum + r.efficiency, 0) / results.length
       : 0
 
-  return { results, unplacedPieces, totalEfficiency, algorithmUsed: 'guillotine' }
+  return { results, unplacedPieces, totalEfficiency, algorithmUsed: 'maxrects' }
 }
 
 function packBoard(
@@ -74,7 +78,7 @@ function packBoard(
 
   for (let i = 0; i < remaining.length; i++) {
     const piece = remaining[i]
-    const fit = findBestFit(freeRects, piece)
+    const fit = findBSSF(freeRects, piece)
     if (!fit) continue
 
     const pw = fit.rotated ? piece.height : piece.width
@@ -90,7 +94,11 @@ function packBoard(
       rotated: fit.rotated,
       label: piece.label,
     })
-    splitFreeRect(freeRects, fit.rectIndex, pw, ph, bladeThickness)
+
+    // Occupied zone includes kerf, clamped to board bounds
+    const occW = Math.min(pw + bladeThickness, board.width - fit.rect.x)
+    const occH = Math.min(ph + bladeThickness, board.height - fit.rect.y)
+    splitAndPrune(freeRects, fit.rect.x, fit.rect.y, occW, occH)
     placedIndices.push(i)
   }
 
@@ -112,55 +120,77 @@ function packBoard(
   }
 }
 
-function findBestFit(
+function findBSSF(
   freeRects: FreeRect[],
   piece: PieceInstance,
-): { rect: FreeRect; rectIndex: number; rotated: boolean } | null {
+): { rect: FreeRect; rotated: boolean } | null {
   let bestScore = Infinity
-  let bestIndex = -1
+  let bestRect: FreeRect | null = null
   let bestRotated = false
 
-  for (let i = 0; i < freeRects.length; i++) {
-    const rect = freeRects[i]
-
+  for (const rect of freeRects) {
     if (piece.width <= rect.width && piece.height <= rect.height) {
-      const score = rect.width * rect.height - piece.width * piece.height
+      const score = Math.min(rect.width - piece.width, rect.height - piece.height)
       if (score < bestScore) {
         bestScore = score
-        bestIndex = i
+        bestRect = rect
         bestRotated = false
       }
     }
-
     if (piece.canRotate && piece.height <= rect.width && piece.width <= rect.height) {
-      const score = rect.width * rect.height - piece.height * piece.width
+      const score = Math.min(rect.width - piece.height, rect.height - piece.width)
       if (score < bestScore) {
         bestScore = score
-        bestIndex = i
+        bestRect = rect
         bestRotated = true
       }
     }
   }
 
-  if (bestIndex === -1) return null
-  return { rect: freeRects[bestIndex], rectIndex: bestIndex, rotated: bestRotated }
+  return bestRect ? { rect: bestRect, rotated: bestRotated } : null
 }
 
-function splitFreeRect(
+/**
+ * 4-way split of all free rects against the occupied zone [ox,oy,ow,oh],
+ * then prune any rect fully contained within another.
+ */
+function splitAndPrune(
   freeRects: FreeRect[],
-  index: number,
-  placedW: number,
-  placedH: number,
-  bladeThickness: number,
+  ox: number, oy: number, ow: number, oh: number,
 ): void {
-  const rect = freeRects[index]
-  freeRects.splice(index, 1)
+  const toAdd: FreeRect[] = []
+  let i = freeRects.length
 
-  const rightW = rect.width - placedW - bladeThickness
-  const bottomH = rect.height - placedH - bladeThickness
+  while (i--) {
+    const r = freeRects[i]
+    // Skip non-intersecting rects
+    if (ox >= r.x + r.width || ox + ow <= r.x || oy >= r.y + r.height || oy + oh <= r.y) continue
 
-  if (rightW > 0)
-    freeRects.push({ x: rect.x + placedW + bladeThickness, y: rect.y, width: rightW, height: rect.height })
-  if (bottomH > 0)
-    freeRects.push({ x: rect.x, y: rect.y + placedH + bladeThickness, width: placedW, height: bottomH })
+    freeRects.splice(i, 1)
+
+    if (ox > r.x)
+      toAdd.push({ x: r.x, y: r.y, width: ox - r.x, height: r.height })
+    if (ox + ow < r.x + r.width)
+      toAdd.push({ x: ox + ow, y: r.y, width: r.x + r.width - (ox + ow), height: r.height })
+    if (oy > r.y)
+      toAdd.push({ x: r.x, y: r.y, width: r.width, height: oy - r.y })
+    if (oy + oh < r.y + r.height)
+      toAdd.push({ x: r.x, y: oy + oh, width: r.width, height: r.y + r.height - (oy + oh) })
+  }
+
+  for (const r of toAdd) freeRects.push(r)
+
+  // Remove rects fully contained within another
+  let j = freeRects.length
+  outer: while (j--) {
+    const a = freeRects[j]
+    for (let k = 0; k < freeRects.length; k++) {
+      if (k === j) continue
+      const b = freeRects[k]
+      if (b.x <= a.x && b.y <= a.y && b.x + b.width >= a.x + a.width && b.y + b.height >= a.y + a.height) {
+        freeRects.splice(j, 1)
+        continue outer
+      }
+    }
+  }
 }

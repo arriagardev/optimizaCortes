@@ -40,9 +40,11 @@ export interface CutSolution {
   results: CutResult[]
   unplacedPieces: Piece[]
   totalEfficiency: number
+  algorithmUsed: 'guillotine' | 'maxrects'
 }
 
 export interface AppSettings {
   bladeThickness: number
   unit: 'mm' | 'cm' | 'in'
+  algorithm: 'guillotine' | 'maxrects' | 'auto'
 }

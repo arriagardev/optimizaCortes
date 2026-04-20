@@ -16,7 +16,12 @@ export function SummaryPanel({ solution, boards, pieces, settings }: Props) {
   return (
     <div className="summary-panel">
       <div className="summary-header">
-        <h3>Resumen</h3>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+          <h3>Resumen</h3>
+          <span className={`algo-badge algo-badge--${solution.algorithmUsed}`}>
+            {solution.algorithmUsed === 'guillotine' ? 'Guillotine' : 'MaxRects'}
+          </span>
+        </div>
         <button className="btn-pdf" onClick={handleExportPdf}>
           Exportar PDF
         </button>

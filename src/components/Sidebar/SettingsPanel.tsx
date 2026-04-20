@@ -29,6 +29,17 @@ export function SettingsPanel({ settings, onChange }: Props) {
           <option value="in">pulgadas</option>
         </select>
       </div>
+      <div className="form-row">
+        <label>Algoritmo</label>
+        <select
+          value={settings.algorithm}
+          onChange={e => onChange({ ...settings, algorithm: e.target.value as AppSettings['algorithm'] })}
+        >
+          <option value="auto">Auto (elige el mejor)</option>
+          <option value="guillotine">Guillotine</option>
+          <option value="maxrects">MaxRects</option>
+        </select>
+      </div>
     </div>
   )
 }
