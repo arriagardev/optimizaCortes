@@ -49,6 +49,17 @@ body {
   letter-spacing: -0.3px;
 }
 
+.sidebar-close {
+  display: none;
+  background: none;
+  border: none;
+  font-size: 1.1rem;
+  cursor: pointer;
+  color: #666;
+  padding: 2px 4px;
+  line-height: 1;
+}
+
 .tab-nav {
   display: flex;
   border-bottom: 1px solid #dde1e7;
@@ -98,6 +109,25 @@ body {
 }
 .btn-optimize:hover { background: #1648c0; }
 .btn-optimize:disabled { background: #9db3e0; cursor: not-allowed; }
+
+.footer-project {
+  display: flex;
+  gap: 6px;
+  margin-top: 8px;
+}
+
+.btn-project {
+  flex: 1;
+  padding: 7px 4px;
+  background: #f8f9fb;
+  color: #444;
+  border: 1px solid #dde1e7;
+  border-radius: 5px;
+  font-size: 0.76rem;
+  cursor: pointer;
+  transition: background 0.15s;
+}
+.btn-project:hover { background: #eef0f4; }
 
 /* ── Forms ── */
 .form {
@@ -449,4 +479,77 @@ body {
   .canvas-empty {
     min-height: 200px;
   }
+}
+
+/* ── Mobile header (hidden on desktop) ── */
+.mobile-header {
+  display: none;
+}
+
+.sidebar-backdrop {
+  display: none;
+}
+
+/* ── Responsive: ≤ 640px ── */
+@media (max-width: 640px) {
+  body { overflow: auto; }
+  #root { height: auto; min-height: 100vh; }
+
+  .app-layout { flex-direction: column; height: auto; min-height: 100vh; }
+
+  .mobile-header {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 10px 14px;
+    background: #fff;
+    border-bottom: 1px solid #dde1e7;
+    font-size: 1rem;
+    font-weight: 700;
+    color: #1a56db;
+    flex-shrink: 0;
+  }
+
+  .btn-menu {
+    background: none;
+    border: none;
+    font-size: 1.4rem;
+    cursor: pointer;
+    color: #333;
+    padding: 0;
+    line-height: 1;
+  }
+
+  .sidebar {
+    position: fixed;
+    inset: 0 auto 0 0;
+    width: 300px;
+    z-index: 200;
+    transform: translateX(-100%);
+    transition: transform 0.25s ease;
+    box-shadow: 4px 0 20px rgba(0, 0, 0, 0.18);
+  }
+
+  .sidebar.open { transform: translateX(0); }
+
+  .sidebar-close { display: block; }
+
+  .sidebar-backdrop {
+    display: block;
+    position: fixed;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.4);
+    z-index: 199;
+  }
+
+  .main-area {
+    padding: 10px;
+    gap: 10px;
+    overflow: visible;
+    flex: none;
+  }
+
+  .canvas-wrapper { min-height: 360px; }
+
+  .summary-stats { gap: 14px; flex-wrap: wrap; }
 }

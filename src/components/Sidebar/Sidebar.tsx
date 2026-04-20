@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useRef, useState } from 'react'
 import { BoardForm } from './BoardForm'
 import { BoardList } from './BoardList'
 import { PieceForm } from './PieceForm'
@@ -11,6 +11,7 @@ interface Props {
   boards: Board[]
   pieces: Piece[]
   settings: AppSettings
+  isOpen: boolean
   onAddBoard: (b: Omit<Board, 'id'>) => void
   onUpdateBoard: (id: string, u: Partial<Board>) => void
   onRemoveBoard: (id: string) => void
@@ -19,25 +20,37 @@ interface Props {
   onRemovePiece: (id: string) => void
   onChangeSettings: (s: AppSettings) => void
   onSolutionReady: (s: CutSolution) => void
-  isOpen: boolean
+  onExport: () => void
+  onImportFile: (file: File) => void
   onClose: () => void
 }
 
 type Tab = 'boards' | 'pieces' | 'settings'
 
 export function Sidebar({
-  boards, pieces, settings,
+  boards, pieces, settings, isOpen,
   onAddBoard, onUpdateBoard, onRemoveBoard,
   onAddPiece, onUpdatePiece, onRemovePiece,
   onChangeSettings, onSolutionReady,
-  isOpen, onClose,
+  onExport, onImportFile, onClose,
 }: Props) {
   const [tab, setTab] = useState<Tab>('boards')
+  const fileInputRef = useRef<HTMLInputElement>(null)
 
   function handleOptimize() {
     const solution = guillotineCut(boards, pieces, settings.bladeThickness)
     onSolutionReady(solution)
     onClose()
+  }
+
+  function handleImportClick() {
+    fileInputRef.current?.click()
+  }
+
+  function handleFileChange(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0]
+    if (file) onImportFile(file)
+    e.target.value = ''
   }
 
   return (
@@ -85,6 +98,22 @@ export function Sidebar({
         >
           Optimizar cortes
         </button>
+
+        <div className="footer-project">
+          <button className="btn-project" onClick={onExport}>
+            Exportar JSON
+          </button>
+          <button className="btn-project" onClick={handleImportClick}>
+            Importar JSON
+          </button>
+          <input
+            ref={fileInputRef}
+            type="file"
+            accept=".json"
+            style={{ display: 'none' }}
+            onChange={handleFileChange}
+          />
+        </div>
       </div>
     </aside>
   )

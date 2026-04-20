@@ -61,13 +61,11 @@ src/
 - [x] Panel de resumen con estadísticas de eficiencia
 - [x] Exportar reporte en PDF (layout por tablero, tablas de piezas y estadísticas)
 - [x] Deploy automático en GitHub Pages vía GitHub Actions
+- [x] **Persistencia en localStorage** — los datos sobreviven al recargar la página
+- [x] **Exportar / importar proyecto como JSON** — guardar y compartir proyectos
+- [x] **Diseño responsive** — sidebar deslizable en móvil (≤ 640px)
 
 ### Próximas mejoras
-
-#### Alto valor / baja complejidad
-- [ ] **Persistencia en localStorage** — los datos sobreviven al recargar la página
-- [ ] **Exportar / importar proyecto como JSON** — guardar y compartir proyectos
-- [ ] **Diseño responsive** — soporte para pantallas pequeñas y móvil
 
 #### Medio
 - [ ] **Validación de formularios** — mensajes de error para dimensiones inválidas o vacías
