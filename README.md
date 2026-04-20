@@ -64,13 +64,12 @@ src/
 - [x] **Persistencia en localStorage** — los datos sobreviven al recargar la página
 - [x] **Exportar / importar proyecto como JSON** — guardar y compartir proyectos
 - [x] **Diseño responsive** — sidebar deslizable en móvil (≤ 640px)
+- [x] **Validación de formularios** — mensajes de error en JS para dimensiones inválidas
+- [x] **Undo / Redo (Ctrl+Z / Ctrl+Y)** — historial de hasta 30 acciones en el store
+- [x] **Visualizar desperdicio en el canvas** — trama diagonal sobre zonas sin corte
+- [x] **Colores consistentes por dimensión** — misma pieza = mismo color en canvas, lista y PDF
 
 ### Próximas mejoras
-
-#### Medio
-- [ ] **Validación de formularios** — mensajes de error para dimensiones inválidas o vacías
-- [ ] **Undo / Redo (Ctrl+Z)** — historial de cambios en el store
-- [ ] **Visualizar desperdicio en el canvas** — zonas de desperdicio coloreadas y líneas de corte explícitas
 
 #### Mayor esfuerzo
 - [ ] **Mejora del algoritmo** — variante guillotine con merge de rectángulos libres para mayor eficiencia

@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useCutStore } from './store/cutStore'
 import { Sidebar } from './components/Sidebar/Sidebar'
 import { CutCanvas } from './components/Canvas/CutCanvas'
@@ -9,6 +9,21 @@ import './App.css'
 export default function App() {
   const store = useCutStore()
   const [sidebarOpen, setSidebarOpen] = useState(false)
+
+  useEffect(() => {
+    function handleKeyDown(e: KeyboardEvent) {
+      if (!e.ctrlKey && !e.metaKey) return
+      if (e.key === 'z' && !e.shiftKey) {
+        e.preventDefault()
+        store.undo()
+      } else if (e.key === 'y' || (e.key === 'z' && e.shiftKey)) {
+        e.preventDefault()
+        store.redo()
+      }
+    }
+    window.addEventListener('keydown', handleKeyDown)
+    return () => window.removeEventListener('keydown', handleKeyDown)
+  }, [store.undo, store.redo])
 
   function handleExport() {
     exportProject(store.boards, store.pieces, store.settings)

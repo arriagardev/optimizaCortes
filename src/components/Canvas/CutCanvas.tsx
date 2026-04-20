@@ -1,10 +1,6 @@
 import { useRef, useEffect, useState } from 'react'
 import type { CutResult } from '../../types'
-
-const COLORS = [
-  '#4E9AF1', '#F1A94E', '#E45C55', '#5CB85C', '#9B59B6',
-  '#1ABC9C', '#F39C12', '#2980B9', '#E74C3C', '#27AE60',
-]
+import { getPieceColor } from '../../utils/pieceColor'
 
 interface Props {
   results: CutResult[]
@@ -53,23 +49,44 @@ export function CutCanvas({ results }: Props) {
 
     ctx.clearRect(0, 0, canvas.width, canvas.height)
 
+    // Board fill
     ctx.fillStyle = '#F5F0E8'
     ctx.fillRect(offsetX, offsetY, drawW, drawH)
+
+    // Diagonal hatching to highlight waste areas
+    ctx.save()
+    ctx.beginPath()
+    ctx.rect(offsetX, offsetY, drawW, drawH)
+    ctx.clip()
+    ctx.strokeStyle = 'rgba(160, 110, 60, 0.20)'
+    ctx.lineWidth = 0.8
+    const step = 10
+    ctx.beginPath()
+    for (let d = -drawH; d < drawW; d += step) {
+      ctx.moveTo(offsetX + d, offsetY)
+      ctx.lineTo(offsetX + d + drawW + drawH, offsetY + drawH)
+    }
+    ctx.stroke()
+    ctx.restore()
+
+    // Board border
     ctx.strokeStyle = '#666'
     ctx.lineWidth = 2
     ctx.strokeRect(offsetX, offsetY, drawW, drawH)
 
+    // Dimensions label
     ctx.fillStyle = '#333'
     ctx.font = '13px sans-serif'
     ctx.fillText(`${result.boardWidth} × ${result.boardHeight} mm`, offsetX, offsetY - 6)
 
-    result.placedPieces.forEach((piece, i) => {
+    // Placed pieces (solid fill covers hatching)
+    result.placedPieces.forEach(piece => {
       const px = offsetX + piece.x * scale
       const py = offsetY + piece.y * scale
       const pw = piece.width * scale
       const ph = piece.height * scale
 
-      const color = COLORS[i % COLORS.length]
+      const color = getPieceColor(piece.width, piece.height)
       ctx.fillStyle = color + 'CC'
       ctx.fillRect(px, py, pw, ph)
       ctx.strokeStyle = color
@@ -92,6 +109,11 @@ export function CutCanvas({ results }: Props) {
     ctx.font = '14px sans-serif'
     ctx.fillText(`Eficiencia: ${eff}%  |  ${result.placedPieces.length} piezas`, offsetX, offsetY + drawH + 18)
   }, [result, canvasSize])
+
+  // Reset to first board when results change
+  useEffect(() => {
+    setCurrentBoard(0)
+  }, [results])
 
   if (results.length === 0) {
     return (

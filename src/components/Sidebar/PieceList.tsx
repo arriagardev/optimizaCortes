@@ -1,4 +1,5 @@
 import type { Piece } from '../../types'
+import { getPieceColor } from '../../utils/pieceColor'
 
 interface Props {
   pieces: Piece[]
@@ -13,6 +14,11 @@ export function PieceList({ pieces, onRemove, onUpdate }: Props) {
     <ul className="item-list">
       {pieces.map(piece => (
         <li key={piece.id} className="item-row">
+          <span
+            className="piece-swatch"
+            style={{ background: getPieceColor(piece.width, piece.height) }}
+            aria-hidden="true"
+          />
           <span className="item-label">{piece.label}</span>
           <span className="item-dims">
             {piece.width} × {piece.height} mm

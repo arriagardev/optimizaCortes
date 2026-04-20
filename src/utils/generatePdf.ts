@@ -1,19 +1,6 @@
 import jsPDF from 'jspdf'
 import type { Board, Piece, CutSolution, AppSettings } from '../types'
-
-// Must match CutCanvas.tsx COLORS order exactly
-const PIECE_COLORS: [number, number, number][] = [
-  [78, 154, 241],   // #4E9AF1 blue
-  [241, 169, 78],   // #F1A94E orange
-  [228, 92, 85],    // #E45C55 red
-  [92, 184, 92],    // #5CB85C green
-  [155, 89, 182],   // #9B59B6 purple
-  [26, 188, 156],   // #1ABC9C teal
-  [243, 156, 18],   // #F39C12 yellow
-  [41, 128, 185],   // #2980B9 dark blue
-  [231, 76, 60],    // #E74C3C crimson
-  [39, 174, 96],    // #27AE60 dark green
-]
+import { getPieceColorRgb } from './pieceColor'
 
 const PAGE_W = 210
 const PAGE_H = 297
@@ -214,16 +201,9 @@ export function generatePdf(
     doc.setLineWidth(0.3)
     doc.rect(ox, y, drawW, drawH, 'FD')
 
-    // Assign color index by pieceId (stable order)
-    const colorIdx = new Map<string, number>()
-    let ci = 0
-    result.placedPieces.forEach(pp => {
-      if (!colorIdx.has(pp.pieceId)) colorIdx.set(pp.pieceId, ci++)
-    })
-
     // Draw pieces
     result.placedPieces.forEach(pp => {
-      const [r, g, b] = PIECE_COLORS[(colorIdx.get(pp.pieceId) ?? 0) % PIECE_COLORS.length]
+      const [r, g, b] = getPieceColorRgb(pp.width, pp.height)
       const px = ox + pp.x * scale
       const py = y + pp.y * scale
       const pw = pp.width * scale
@@ -286,7 +266,7 @@ export function generatePdf(
         doc.rect(M, y - 4.5, CW, 7, 'F')
       }
       // Color swatch
-      const [r, g, b] = PIECE_COLORS[(colorIdx.get(pp.pieceId) ?? 0) % PIECE_COLORS.length]
+      const [r, g, b] = getPieceColorRgb(pp.width, pp.height)
       doc.setFillColor(r, g, b)
       doc.rect(M + 2, y - 3.5, 3.5, 3.5, 'F')
 
