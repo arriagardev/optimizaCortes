@@ -8,7 +8,7 @@ interface ProjectFile {
 }
 
 export function exportProject(boards: Board[], pieces: Piece[], settings: AppSettings): void {
-  const data: ProjectFile = { version: 1, boards, pieces, settings }
+  const data: ProjectFile = { version: 2, boards, pieces, settings }
   const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' })
   const url = URL.createObjectURL(blob)
   const a = document.createElement('a')

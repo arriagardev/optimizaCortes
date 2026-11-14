@@ -8,6 +8,7 @@ import './App.css'
 
 export default function App() {
   const store = useCutStore()
+  const { undo, redo } = store
   const [sidebarOpen, setSidebarOpen] = useState(false)
 
   useEffect(() => {
@@ -15,15 +16,15 @@ export default function App() {
       if (!e.ctrlKey && !e.metaKey) return
       if (e.key === 'z' && !e.shiftKey) {
         e.preventDefault()
-        store.undo()
+        undo()
       } else if (e.key === 'y' || (e.key === 'z' && e.shiftKey)) {
         e.preventDefault()
-        store.redo()
+        redo()
       }
     }
     window.addEventListener('keydown', handleKeyDown)
     return () => window.removeEventListener('keydown', handleKeyDown)
-  }, [store.undo, store.redo])
+  }, [undo, redo])
 
   function handleExport() {
     exportProject(store.boards, store.pieces, store.settings)

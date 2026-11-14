@@ -41,16 +41,17 @@ export function Sidebar({
 
   function handleOptimize() {
     const bt = settings.bladeThickness
+    const order = settings.pieceOrder
     let solution: CutSolution
 
     if (settings.algorithm === 'guillotine') {
-      solution = guillotineCut(boards, pieces, bt)
+      solution = guillotineCut(boards, pieces, bt, order)
     } else if (settings.algorithm === 'maxrects') {
-      solution = maxrectsCut(boards, pieces, bt)
+      solution = maxrectsCut(boards, pieces, bt, order)
     } else {
       // auto: run both and pick the one with higher efficiency
-      const g = guillotineCut(boards, pieces, bt)
-      const m = maxrectsCut(boards, pieces, bt)
+      const g = guillotineCut(boards, pieces, bt, order)
+      const m = maxrectsCut(boards, pieces, bt, order)
       solution = m.totalEfficiency >= g.totalEfficiency ? m : g
     }
 

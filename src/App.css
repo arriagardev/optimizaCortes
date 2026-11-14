@@ -338,7 +338,8 @@ body {
 
 .summary-stats {
   display: flex;
-  gap: 24px;
+  flex-wrap: wrap;
+  gap: 10px 24px;
 }
 
 .stat {
@@ -351,6 +352,12 @@ body {
   font-size: 1.4rem;
   font-weight: 700;
   color: #1a56db;
+}
+
+.stat-value small {
+  font-size: 0.7rem;
+  font-weight: 600;
+  color: #6b7280;
 }
 
 .stat-label {
@@ -469,6 +476,214 @@ body {
   font-size: 0.9rem;
   text-align: center;
   padding: 16px;
+}
+
+/* ── Canteado / edge banding ── */
+.item-row--piece {
+  flex-direction: column;
+  align-items: stretch;
+  gap: 0;
+}
+
+.item-main {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  min-width: 0;
+}
+
+.item-main .item-label {
+  flex: 1;
+  min-width: 0;
+}
+
+.item-sub {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  margin-top: 2px;
+  padding-left: 20px;
+}
+
+.item-sub .item-dims {
+  flex: 0 0 auto;
+  white-space: nowrap;
+}
+
+.item-row--expanded {
+  background: #fffdf7;
+  border-color: #f0d9b5;
+}
+
+.edge-chip {
+  flex-shrink: 0;
+  padding: 2px 6px;
+  border: 1px solid #d7dbe2;
+  border-radius: 10px;
+  background: #fff;
+  color: #98a1af;
+  font-size: 0.66rem;
+  line-height: 1.4;
+  cursor: pointer;
+  white-space: nowrap;
+}
+.edge-chip:hover { border-color: #b45309; color: #b45309; }
+.edge-chip--on {
+  background: #fdf1e3;
+  border-color: #e0b07a;
+  color: #92400e;
+  font-weight: 600;
+}
+
+.item-detail {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-top: 8px;
+  padding-top: 8px;
+  border-top: 1px dashed #e4e7ec;
+}
+
+.item-detail__edges {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  flex-wrap: wrap;
+}
+
+.item-detail__meta {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  flex-wrap: wrap;
+  font-size: 0.71rem;
+  color: #6b7280;
+}
+
+.item-detail__actions {
+  display: flex;
+  gap: 6px;
+}
+
+.btn-mini {
+  padding: 3px 9px;
+  background: #fff;
+  border: 1px solid #d7dbe2;
+  border-radius: 4px;
+  font-size: 0.7rem;
+  color: #444;
+  cursor: pointer;
+}
+.btn-mini:hover:not(:disabled) { background: #eef3fd; border-color: #1a56db; color: #1a56db; }
+.btn-mini:disabled { opacity: 0.4; cursor: default; }
+
+.edge-picker {
+  display: grid;
+  grid-template-areas:
+    '. top .'
+    'left panel right'
+    '. bottom .';
+  grid-template-columns: auto auto auto;
+  grid-template-rows: auto auto auto;
+  align-items: center;
+  justify-items: center;
+  gap: 4px;
+}
+
+.edge-picker__side {
+  padding: 2px 6px;
+  border: 1px solid #d7dbe2;
+  border-radius: 4px;
+  background: #fff;
+  color: #7a8391;
+  font-size: 0.63rem;
+  line-height: 1.2;
+  cursor: pointer;
+  transition: background 0.12s, color 0.12s, border-color 0.12s;
+}
+.edge-picker__side:hover { border-color: #b45309; color: #b45309; }
+.edge-picker__side.on {
+  background: #b45309;
+  border-color: #b45309;
+  color: #fff;
+  font-weight: 600;
+}
+
+.edge-picker--compact { gap: 3px; }
+.edge-picker--compact .edge-picker__side {
+  padding: 1px 4px;
+  font-size: 0.55rem;
+}
+
+.edge-picker__panel {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid #c9c2b4;
+  border-radius: 2px;
+  background:
+    repeating-linear-gradient(45deg, #f5f0e8 0 6px, #efe8dc 6px 12px);
+  overflow: hidden;
+}
+
+.edge-picker__dims {
+  font-size: 0.56rem;
+  color: #8a8175;
+  background: rgba(255, 255, 255, 0.7);
+  padding: 0 3px;
+  border-radius: 2px;
+}
+
+.edge-presets {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+}
+
+.edge-presets button {
+  padding: 2px 7px;
+  background: #f8f9fb;
+  border: 1px solid #dde1e7;
+  border-radius: 10px;
+  font-size: 0.67rem;
+  color: #555;
+  cursor: pointer;
+}
+.edge-presets button:hover { background: #fdf1e3; border-color: #e0b07a; color: #92400e; }
+
+.form-row--edges {
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 6px;
+}
+
+.form-row--edges > label { min-width: unset; }
+
+.edge-field {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  flex-wrap: wrap;
+  width: 100%;
+}
+
+.edge-field__info {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.edge-field__hint {
+  font-size: 0.71rem;
+  color: #6b7280;
+}
+
+.form-hint {
+  font-size: 0.71rem;
+  color: #8a919e;
+  margin-top: -2px;
 }
 
 /* ── Responsive breakpoint ── */

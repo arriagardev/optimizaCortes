@@ -1,4 +1,5 @@
-import type { Board, Piece, CutSolution, CutResult, PlacedPiece } from '../types'
+import type { Board, Piece, CutSolution, CutResult, PlacedPiece, PieceEdges } from '../types'
+import { normalizeEdges, placedEdgeLength, rotateEdges } from '../utils/edges'
 
 interface FreeRect {
   x: number
@@ -13,6 +14,7 @@ interface PieceInstance {
   width: number
   height: number
   canRotate: boolean
+  edges: PieceEdges
 }
 
 /**
@@ -27,6 +29,7 @@ export function maxrectsCut(
   boards: Board[],
   pieces: Piece[],
   bladeThickness = 3,
+  pieceOrder: 'area' | 'manual' = 'area',
 ): CutSolution {
   const pieceInstances: PieceInstance[] = []
   for (const piece of pieces) {
@@ -37,10 +40,13 @@ export function maxrectsCut(
         width: piece.width,
         height: piece.height,
         canRotate: piece.canRotate,
+        edges: normalizeEdges(piece.edges),
       })
     }
   }
-  pieceInstances.sort((a, b) => b.width * b.height - a.width * a.height)
+  if (pieceOrder === 'area') {
+    pieceInstances.sort((a, b) => b.width * b.height - a.width * a.height)
+  }
 
   const results: CutResult[] = []
   const remaining = [...pieceInstances]
@@ -60,8 +66,9 @@ export function maxrectsCut(
     results.length > 0
       ? results.reduce((sum, r) => sum + r.efficiency, 0) / results.length
       : 0
+  const totalEdgeLength = results.reduce((sum, r) => sum + r.edgeLength, 0)
 
-  return { results, unplacedPieces, totalEfficiency, algorithmUsed: 'maxrects' }
+  return { results, unplacedPieces, totalEfficiency, totalEdgeLength, algorithmUsed: 'maxrects' }
 }
 
 function packBoard(
@@ -93,6 +100,7 @@ function packBoard(
       height: ph,
       rotated: fit.rotated,
       label: piece.label,
+      edges: fit.rotated ? rotateEdges(piece.edges) : piece.edges,
     })
 
     // Occupied zone includes kerf, clamped to board bounds
@@ -115,6 +123,7 @@ function packBoard(
       usedArea,
       totalArea,
       efficiency: totalArea > 0 ? usedArea / totalArea : 0,
+      edgeLength: placedPieces.reduce((sum, p) => sum + placedEdgeLength(p), 0),
     },
     newRemaining,
   }

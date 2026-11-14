@@ -40,6 +40,21 @@ export function SettingsPanel({ settings, onChange }: Props) {
           <option value="maxrects">MaxRects</option>
         </select>
       </div>
+      <div className="form-row">
+        <label>Orden de piezas</label>
+        <select
+          value={settings.pieceOrder}
+          onChange={e => onChange({ ...settings, pieceOrder: e.target.value as AppSettings['pieceOrder'] })}
+        >
+          <option value="area">Automático (por área)</option>
+          <option value="manual">Manual (orden de la lista)</option>
+        </select>
+      </div>
+      <p className="form-hint">
+        {settings.pieceOrder === 'area'
+          ? 'Las piezas grandes se colocan primero: mejor aprovechamiento del tablero.'
+          : 'Se respeta el orden de la lista de piezas; arrastra o usa ↑ ↓ para priorizar.'}
+      </p>
     </div>
   )
 }

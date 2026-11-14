@@ -1,6 +1,7 @@
 import jsPDF from 'jspdf'
 import type { Board, Piece, CutSolution, AppSettings } from '../types'
 import { getPieceColorRgb } from './pieceColor'
+import { edgesLabel, hasEdges, summarizeEdgeBanding, unplacedSummary } from './edges'
 
 const PAGE_W = 210
 const PAGE_H = 297
@@ -98,12 +99,15 @@ export function generatePdf(
   y += 7
 
   const totalPlaced = solution.results.reduce((s, r) => s + r.placedPieces.length, 0)
+  const placedPieces = solution.results.flatMap(r => r.placedPieces)
+  const bandingRows = summarizeEdgeBanding(pieces, placedPieces)
   const summaryRows: [string, string][] = [
     ['Tableros utilizados', String(solution.results.length)],
     ['Piezas colocadas', String(totalPlaced)],
     ['Piezas sin colocar', String(solution.unplacedPieces.length)],
     ['Eficiencia promedio', `${(solution.totalEfficiency * 100).toFixed(1)}%`],
     ['Grosor de cuchilla', `${settings.bladeThickness} ${unit}`],
+    ['Canto total', `${(solution.totalEdgeLength / 1000).toFixed(2)} m`],
   ]
 
   summaryRows.forEach(([label, val]) => {
@@ -137,16 +141,36 @@ export function generatePdf(
   // Pieces table
   table(
     'Piezas requeridas',
-    ['Etiqueta', 'Ancho', 'Alto', 'Cantidad', 'Rotación'],
-    [2, 55, 88, 118, 148],
+    ['Etiqueta', 'Ancho', 'Alto', 'Cantidad', 'Rotación', 'Canto'],
+    [2, 52, 78, 100, 124, 152],
     pieces.map(p => [
       p.label || '—',
       String(p.width),
       String(p.height),
       String(p.quantity),
       p.canRotate ? 'Sí' : 'No',
+      edgesLabel(p.edges),
     ]),
   )
+
+  // Edge banding summary
+  if (bandingRows.length > 0) {
+    const totalEdgeM = bandingRows.reduce((sum, row) => sum + row.length, 0) / 1000
+    table(
+      'Canteado',
+      ['Etiqueta', 'Colocadas', 'Lados', 'Metros lineales'],
+      [2, 62, 96, 148],
+      [
+        ...bandingRows.map(row => [
+          row.label || '—',
+          String(row.placedCount),
+          edgesLabel(row.edges),
+          (row.length / 1000).toFixed(2),
+        ]),
+        ['Total', String(bandingRows.reduce((n, row) => n + row.placedCount, 0)), '', totalEdgeM.toFixed(2)],
+      ],
+    )
+  }
 
   // Unplaced warning
   if (solution.unplacedPieces.length > 0) {
@@ -160,7 +184,9 @@ export function generatePdf(
     doc.text(`Advertencia — piezas sin colocar (${solution.unplacedPieces.length}):`, M + 3, y + 5.5)
     font(8)
     doc.setFont('helvetica', 'normal')
-    const labels = solution.unplacedPieces.map(p => p.label).join(', ')
+    const labels = unplacedSummary(pieces, placedPieces)
+      .map(row => `${row.piece.label} ×${row.missing}`)
+      .join(', ')
     doc.text(labels, M + 3, y + 11, { maxWidth: CW - 6 })
     y += 20
   }
@@ -223,6 +249,16 @@ export function generatePdf(
         const lbl = pp.label.length > 14 ? pp.label.slice(0, 13) + '…' : pp.label
         doc.text(lbl, px + pw / 2, py + ph / 2 + sz * 0.18, { align: 'center' })
       }
+
+      // Banded edges: grueso remarcado en cada lado con canto
+      if (hasEdges(pp.edges)) {
+        doc.setDrawColor(180, 83, 9)
+        doc.setLineWidth(Math.max(0.5, Math.min(1.6, Math.min(pw, ph) * 0.12)))
+        if (pp.edges.top) doc.line(px, py, px + pw, py)
+        if (pp.edges.bottom) doc.line(px, py + ph, px + pw, py + ph)
+        if (pp.edges.left) doc.line(px, py, px, py + ph)
+        if (pp.edges.right) doc.line(px + pw, py, px + pw, py + ph)
+      }
     })
 
     y += drawH + 6
@@ -235,7 +271,7 @@ export function generatePdf(
     const totalM2 = (result.totalArea / 1_000_000).toFixed(4)
     const wasteM2 = ((result.totalArea - result.usedArea) / 1_000_000).toFixed(4)
     doc.text(
-      `Área usada: ${usedM2} m²   ·   Total: ${totalM2} m²   ·   Desperdicio: ${wasteM2} m²`,
+      `Área usada: ${usedM2} m²   ·   Total: ${totalM2} m²   ·   Desperdicio: ${wasteM2} m²   ·   Canto: ${(result.edgeLength / 1000).toFixed(2)} m`,
       M, y,
     )
     y += 10
@@ -252,8 +288,8 @@ export function generatePdf(
     doc.rect(M, y - 4.5, CW, 7, 'F')
     font(7, 'bold')
     doc.setTextColor(70)
-    const pHeaders = ['', 'Etiqueta', 'Ancho', 'Alto', 'Pos X', 'Pos Y', 'Girada']
-    const pColX =    [2,  8,         58,      85,    112,    138,    160]
+    const pHeaders = ['', 'Etiqueta', 'Ancho', 'Alto', 'Pos X', 'Pos Y', 'Girada', 'Canto']
+    const pColX =    [2,  8,         48,      66,    84,      104,    124,      148]
     pHeaders.forEach((h, i) => doc.text(h, M + pColX[i], y))
     y += 7
 
@@ -271,7 +307,7 @@ export function generatePdf(
       doc.rect(M + 2, y - 3.5, 3.5, 3.5, 'F')
 
       doc.setTextColor(34)
-      const cells = [pp.label, String(pp.width), String(pp.height), String(pp.x), String(pp.y), pp.rotated ? 'Sí' : 'No']
+      const cells = [pp.label, String(pp.width), String(pp.height), String(pp.x), String(pp.y), pp.rotated ? 'Sí' : 'No', edgesLabel(pp.edges)]
       cells.forEach((v, ci2) => doc.text(v, M + pColX[ci2 + 1], y))
       y += 7
     })

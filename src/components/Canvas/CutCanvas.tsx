@@ -1,6 +1,7 @@
 import { useRef, useEffect, useState } from 'react'
 import type { CutResult } from '../../types'
 import { getPieceColor } from '../../utils/pieceColor'
+import { hasEdges } from '../../utils/edges'
 
 interface Props {
   results: CutResult[]
@@ -9,9 +10,11 @@ interface Props {
 export function CutCanvas({ results }: Props) {
   const canvasRef = useRef<HTMLCanvasElement>(null)
   const innerRef = useRef<HTMLDivElement>(null)
-  const [currentBoard, setCurrentBoard] = useState(0)
+  const [selectedBoard, setSelectedBoard] = useState(0)
   const [canvasSize, setCanvasSize] = useState({ width: 900, height: 600 })
 
+  // Si el número de tableros baja, no dejamos el índice fuera de rango.
+  const currentBoard = Math.min(selectedBoard, Math.max(0, results.length - 1))
   const result = results[currentBoard]
 
   useEffect(() => {
@@ -93,6 +96,32 @@ export function CutCanvas({ results }: Props) {
       ctx.lineWidth = 1.5
       ctx.strokeRect(px, py, pw, ph)
 
+      // Cantos pegados: línea gruesa sobre cada lado que lleva canto
+      if (hasEdges(piece.edges)) {
+        const lw = Math.max(2, Math.min(5, Math.min(pw, ph) * 0.08))
+        const inset = lw / 2
+        ctx.strokeStyle = '#b45309'
+        ctx.lineWidth = lw
+        ctx.beginPath()
+        if (piece.edges.top) {
+          ctx.moveTo(px + inset, py + inset)
+          ctx.lineTo(px + pw - inset, py + inset)
+        }
+        if (piece.edges.bottom) {
+          ctx.moveTo(px + inset, py + ph - inset)
+          ctx.lineTo(px + pw - inset, py + ph - inset)
+        }
+        if (piece.edges.left) {
+          ctx.moveTo(px + inset, py + inset)
+          ctx.lineTo(px + inset, py + ph - inset)
+        }
+        if (piece.edges.right) {
+          ctx.moveTo(px + pw - inset, py + inset)
+          ctx.lineTo(px + pw - inset, py + ph - inset)
+        }
+        ctx.stroke()
+      }
+
       if (pw > 30 && ph > 18) {
         ctx.fillStyle = '#000'
         ctx.font = `${Math.min(12, ph * 0.3)}px sans-serif`
@@ -107,13 +136,10 @@ export function CutCanvas({ results }: Props) {
     const eff = (result.efficiency * 100).toFixed(1)
     ctx.fillStyle = '#222'
     ctx.font = '14px sans-serif'
-    ctx.fillText(`Eficiencia: ${eff}%  |  ${result.placedPieces.length} piezas`, offsetX, offsetY + drawH + 18)
+    const footer = [`Eficiencia: ${eff}%`, `${result.placedPieces.length} piezas`]
+    if (result.edgeLength > 0) footer.push(`Canto: ${(result.edgeLength / 1000).toFixed(2)} m`)
+    ctx.fillText(footer.join('  |  '), offsetX, offsetY + drawH + 18)
   }, [result, canvasSize])
-
-  // Reset to first board when results change
-  useEffect(() => {
-    setCurrentBoard(0)
-  }, [results])
 
   if (results.length === 0) {
     return (
@@ -126,9 +152,9 @@ export function CutCanvas({ results }: Props) {
   return (
     <div className="canvas-wrapper">
       <div className="canvas-toolbar">
-        <button disabled={currentBoard === 0} onClick={() => setCurrentBoard(c => c - 1)}>‹</button>
+        <button disabled={currentBoard === 0} onClick={() => setSelectedBoard(c => c - 1)}>‹</button>
         <span>Tablero {currentBoard + 1} / {results.length}</span>
-        <button disabled={currentBoard === results.length - 1} onClick={() => setCurrentBoard(c => c + 1)}>›</button>
+        <button disabled={currentBoard === results.length - 1} onClick={() => setSelectedBoard(c => c + 1)}>›</button>
       </div>
       <div className="canvas-inner" ref={innerRef}>
         <canvas ref={canvasRef} width={canvasSize.width} height={canvasSize.height} className="cut-canvas" />
