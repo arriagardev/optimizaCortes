@@ -21,6 +21,7 @@ interface Props {
   onRemovePiece: (id: string) => void
   onReorderPiece: (fromIdx: number, toIdx: number) => void
   onChangeSettings: (s: AppSettings) => void
+  onChangeUnit: (u: AppSettings['unit']) => void
   onSolutionReady: (s: CutSolution) => void
   onExport: () => void
   onImportFile: (file: File) => void
@@ -33,7 +34,7 @@ export function Sidebar({
   boards, pieces, settings, isOpen,
   onAddBoard, onUpdateBoard, onRemoveBoard,
   onAddPiece, onUpdatePiece, onRemovePiece, onReorderPiece,
-  onChangeSettings, onSolutionReady,
+  onChangeSettings, onChangeUnit, onSolutionReady,
   onExport, onImportFile, onClose,
 }: Props) {
   const [tab, setTab] = useState<Tab>('boards')
@@ -50,9 +51,10 @@ export function Sidebar({
       solution = maxrectsCut(boards, pieces, bt, order)
     } else {
       // auto: run both and pick the one with higher efficiency
+      // (en empate gana Guillotine, que además produce la secuencia de cortes)
       const g = guillotineCut(boards, pieces, bt, order)
       const m = maxrectsCut(boards, pieces, bt, order)
-      solution = m.totalEfficiency >= g.totalEfficiency ? m : g
+      solution = m.totalEfficiency > g.totalEfficiency ? m : g
     }
 
     onSolutionReady(solution)
@@ -91,18 +93,28 @@ export function Sidebar({
       <div className="sidebar-content">
         {tab === 'boards' && (
           <>
-            <BoardForm onAdd={onAddBoard} />
-            <BoardList boards={boards} onRemove={onRemoveBoard} onUpdate={onUpdateBoard} />
+            <BoardForm key={settings.unit} unit={settings.unit} onAdd={onAddBoard} />
+            <BoardList boards={boards} unit={settings.unit} onRemove={onRemoveBoard} onUpdate={onUpdateBoard} />
           </>
         )}
         {tab === 'pieces' && (
           <>
-            <PieceForm onAdd={onAddPiece} />
-            <PieceList pieces={pieces} onRemove={onRemovePiece} onUpdate={onUpdatePiece} onReorder={onReorderPiece} />
+            <PieceForm key={settings.unit} unit={settings.unit} onAdd={onAddPiece} />
+            <PieceList
+              pieces={pieces}
+              unit={settings.unit}
+              onRemove={onRemovePiece}
+              onUpdate={onUpdatePiece}
+              onReorder={onReorderPiece}
+            />
           </>
         )}
         {tab === 'settings' && (
-          <SettingsPanel settings={settings} onChange={onChangeSettings} />
+          <SettingsPanel
+            settings={settings}
+            onChange={onChangeSettings}
+            onChangeUnit={onChangeUnit}
+          />
         )}
       </div>
 

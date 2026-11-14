@@ -114,4 +114,24 @@ describe('guillotineCut', () => {
     const manual = guillotineCut([board], pieces, 0, 'manual')
     expect(manual.results[0].placedPieces[0].pieceId).toBe('p1')
   })
+
+  it('genera la secuencia de cortes ordenada por profundidad', () => {
+    const square: Board = { id: 'b5', width: 1000, height: 1000, material: 'MDF', quantity: 1 }
+    const pieces: Piece[] = ['p1', 'p2', 'p3', 'p4'].map(id =>
+      piece({ id, width: 500, height: 500, label: id }),
+    )
+
+    const steps = guillotineCut([square], pieces, 0).results[0].cutSteps ?? []
+
+    // Tablero → corte vertical; luego un horizontal en cada mitad
+    expect(steps).toHaveLength(3)
+    expect(steps.map(s => s.depth)).toEqual([0, 1, 1])
+    expect(steps[0]).toMatchObject({ orientation: 'vertical', offset: 500, length: 1000 })
+    expect(steps.slice(1).every(s => s.orientation === 'horizontal' && s.offset === 500)).toBe(true)
+  })
+
+  it('no genera cortes cuando la pieza llena el tablero', () => {
+    const pieces: Piece[] = [piece({ id: 'p1', width: 1000, height: 500 })]
+    expect(guillotineCut([board], pieces, 0).results[0].cutSteps).toEqual([])
+  })
 })

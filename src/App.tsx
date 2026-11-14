@@ -58,6 +58,7 @@ export default function App() {
         onRemovePiece={store.removePiece}
         onReorderPiece={store.reorderPieces}
         onChangeSettings={store.setSettings}
+        onChangeUnit={store.changeUnit}
         onSolutionReady={store.setSolution}
         onExport={handleExport}
         onImportFile={handleImportFile}
@@ -80,7 +81,7 @@ export default function App() {
             settings={store.settings}
           />
         )}
-        <CutCanvas results={store.solution?.results ?? []} />
+        <CutCanvas results={store.solution?.results ?? []} unit={store.settings.unit} />
       </main>
     </div>
   )

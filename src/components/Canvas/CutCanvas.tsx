@@ -2,12 +2,15 @@ import { useRef, useEffect, useState } from 'react'
 import type { CutResult } from '../../types'
 import { getPieceColor } from '../../utils/pieceColor'
 import { hasEdges } from '../../utils/edges'
+import { formatNumber, lengthToMeters, unitLabel, type Unit } from '../../utils/units'
+import { CutSequence } from './CutSequence'
 
 interface Props {
   results: CutResult[]
+  unit: Unit
 }
 
-export function CutCanvas({ results }: Props) {
+export function CutCanvas({ results, unit }: Props) {
   const canvasRef = useRef<HTMLCanvasElement>(null)
   const innerRef = useRef<HTMLDivElement>(null)
   const [selectedBoard, setSelectedBoard] = useState(0)
@@ -20,15 +23,23 @@ export function CutCanvas({ results }: Props) {
   useEffect(() => {
     const el = innerRef.current
     if (!el) return
-    const ro = new ResizeObserver(() => {
+    // Medimos también al montar: el contenedor puede cambiar de tamaño cuando
+    // aparece la secuencia de cortes o al cambiar de tablero.
+    const measure = () => {
       const { clientWidth, clientHeight } = el
       if (clientWidth > 0 && clientHeight > 0) {
-        setCanvasSize({ width: clientWidth, height: clientHeight })
+        setCanvasSize(prev =>
+          prev.width === clientWidth && prev.height === clientHeight
+            ? prev
+            : { width: clientWidth, height: clientHeight },
+        )
       }
-    })
+    }
+    measure()
+    const ro = new ResizeObserver(measure)
     ro.observe(el)
     return () => ro.disconnect()
-  }, [])
+  }, [results.length])
 
   useEffect(() => {
     const canvas = canvasRef.current
@@ -80,7 +91,7 @@ export function CutCanvas({ results }: Props) {
     // Dimensions label
     ctx.fillStyle = '#333'
     ctx.font = '13px sans-serif'
-    ctx.fillText(`${result.boardWidth} × ${result.boardHeight} mm`, offsetX, offsetY - 6)
+    ctx.fillText(`${formatNumber(result.boardWidth)} × ${formatNumber(result.boardHeight)} ${unitLabel(unit)}`, offsetX, offsetY - 6)
 
     // Placed pieces (solid fill covers hatching)
     result.placedPieces.forEach(piece => {
@@ -137,9 +148,9 @@ export function CutCanvas({ results }: Props) {
     ctx.fillStyle = '#222'
     ctx.font = '14px sans-serif'
     const footer = [`Eficiencia: ${eff}%`, `${result.placedPieces.length} piezas`]
-    if (result.edgeLength > 0) footer.push(`Canto: ${(result.edgeLength / 1000).toFixed(2)} m`)
+    if (result.edgeLength > 0) footer.push(`Canto: ${formatNumber(lengthToMeters(result.edgeLength, unit))} m`)
     ctx.fillText(footer.join('  |  '), offsetX, offsetY + drawH + 18)
-  }, [result, canvasSize])
+  }, [result, canvasSize, unit])
 
   if (results.length === 0) {
     return (
@@ -156,8 +167,17 @@ export function CutCanvas({ results }: Props) {
         <span>Tablero {currentBoard + 1} / {results.length}</span>
         <button disabled={currentBoard === results.length - 1} onClick={() => setSelectedBoard(c => c + 1)}>›</button>
       </div>
-      <div className="canvas-inner" ref={innerRef}>
-        <canvas ref={canvasRef} width={canvasSize.width} height={canvasSize.height} className="cut-canvas" />
+      <div className="canvas-body">
+        <div className="canvas-inner" ref={innerRef}>
+          <canvas ref={canvasRef} width={canvasSize.width} height={canvasSize.height} className="cut-canvas" />
+        </div>
+        {result.cutSteps && result.cutSteps.length > 0 ? (
+          <CutSequence steps={result.cutSteps} unit={unit} />
+        ) : (
+          <p className="cut-sequence__empty">
+            Este layout no produce secuencia guillotina (algoritmo MaxRects). Elige Guillotine para obtener la lista de cortes.
+          </p>
+        )}
       </div>
     </div>
   )

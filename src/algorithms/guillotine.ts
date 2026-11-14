@@ -1,4 +1,4 @@
-import type { Board, Piece, CutSolution, CutResult, PlacedPiece, PieceEdges } from '../types'
+import type { Board, Piece, CutSolution, CutResult, PlacedPiece, PieceEdges, PanelCut } from '../types'
 import { normalizeEdges, placedEdgeLength, rotateEdges } from '../utils/edges'
 
 interface FreeRect {
@@ -6,6 +6,10 @@ interface FreeRect {
   y: number
   width: number
   height: number
+  /** Identificador del panel dentro del tablero (para la secuencia de cortes). */
+  id: number
+  /** Nivel de anidamiento del panel: 0 es el tablero completo. */
+  depth: number
 }
 
 interface PieceInstance {
@@ -75,9 +79,12 @@ function packBoard(
   pieces: PieceInstance[],
   bladeThickness: number,
 ): { result: CutResult; newRemaining: PieceInstance[] } {
+  const rootId = 1
+  let nextPanelId = 2
   const freeRects: FreeRect[] = [
-    { x: 0, y: 0, width: board.width, height: board.height },
+    { x: 0, y: 0, width: board.width, height: board.height, id: rootId, depth: 0 },
   ]
+  const cutSteps: PanelCut[] = []
   const placedPieces: PlacedPiece[] = []
   const remaining = [...pieces]
   const placedIndices: number[] = []
@@ -89,21 +96,87 @@ function packBoard(
 
     const pw = fit.rotated ? piece.height : piece.width
     const ph = fit.rotated ? piece.width : piece.height
+    const rect = fit.rect
 
     placedPieces.push({
       pieceId: piece.pieceId,
       boardId: board.id,
-      x: fit.rect.x,
-      y: fit.rect.y,
+      x: rect.x,
+      y: rect.y,
       width: pw,
       height: ph,
       rotated: fit.rotated,
       label: piece.label,
       edges: fit.rotated ? rotateEdges(piece.edges) : piece.edges,
     })
-    splitFreeRect(freeRects, fit.rectIndex, pw, ph, bladeThickness)
+
+    const rightW = rect.width - pw - bladeThickness
+    const bottomH = rect.height - ph - bladeThickness
+
+    // Corte vertical: separa la pieza (más su cuchilla) del resto del panel.
+    // El panel que queda a la izquierda conserva el alto completo.
+    if (rightW > 0) {
+      cutSteps.push({
+        panelId: rect.id,
+        panelX: rect.x,
+        panelY: rect.y,
+        panelWidth: rect.width,
+        panelHeight: rect.height,
+        orientation: 'vertical',
+        offset: pw,
+        length: rect.height,
+        depth: rect.depth,
+        label: piece.label,
+      })
+    }
+
+    // Corte horizontal dentro del panel izquierdo: separa la pieza del sobrante inferior.
+    if (bottomH > 0) {
+      const leftPanelId = rightW > 0 ? nextPanelId++ : rect.id
+      const leftPanelDepth = rightW > 0 ? rect.depth + 1 : rect.depth
+      const leftPanelWidth = rightW > 0 ? pw : rect.width
+      cutSteps.push({
+        panelId: leftPanelId,
+        panelX: rect.x,
+        panelY: rect.y,
+        panelWidth: leftPanelWidth,
+        panelHeight: rect.height,
+        orientation: 'horizontal',
+        offset: ph,
+        length: leftPanelWidth,
+        depth: leftPanelDepth,
+        label: piece.label,
+      })
+    }
+
+    freeRects.splice(fit.rectIndex, 1)
+    if (rightW > 0) {
+      freeRects.push({
+        x: rect.x + pw + bladeThickness,
+        y: rect.y,
+        width: rightW,
+        height: rect.height,
+        id: nextPanelId++,
+        depth: rect.depth + 1,
+      })
+    }
+    if (bottomH > 0) {
+      freeRects.push({
+        x: rect.x,
+        y: rect.y + ph + bladeThickness,
+        width: pw,
+        height: bottomH,
+        id: nextPanelId++,
+        depth: rightW > 0 ? rect.depth + 2 : rect.depth + 1,
+      })
+    }
+
     placedIndices.push(i)
   }
+
+  // La secuencia física avanza por profundidad: primero el tablero completo,
+  // luego cada panel ya separado. Orden estable para que sea reproducible.
+  cutSteps.sort((a, b) => a.depth - b.depth)
 
   const newRemaining = remaining.filter((_, i) => !placedIndices.includes(i))
   const usedArea = placedPieces.reduce((sum, p) => sum + p.width * p.height, 0)
@@ -119,6 +192,7 @@ function packBoard(
       totalArea,
       efficiency: totalArea > 0 ? usedArea / totalArea : 0,
       edgeLength: placedPieces.reduce((sum, p) => sum + placedEdgeLength(p), 0),
+      cutSteps,
     },
     newRemaining,
   }
@@ -156,23 +230,4 @@ function findBestFit(
 
   if (bestIndex === -1) return null
   return { rect: freeRects[bestIndex], rectIndex: bestIndex, rotated: bestRotated }
-}
-
-function splitFreeRect(
-  freeRects: FreeRect[],
-  index: number,
-  placedW: number,
-  placedH: number,
-  bladeThickness: number,
-): void {
-  const rect = freeRects[index]
-  freeRects.splice(index, 1)
-
-  const rightW = rect.width - placedW - bladeThickness
-  const bottomH = rect.height - placedH - bladeThickness
-
-  if (rightW > 0)
-    freeRects.push({ x: rect.x + placedW + bladeThickness, y: rect.y, width: rightW, height: rect.height })
-  if (bottomH > 0)
-    freeRects.push({ x: rect.x, y: rect.y + placedH + bladeThickness, width: placedW, height: bottomH })
 }

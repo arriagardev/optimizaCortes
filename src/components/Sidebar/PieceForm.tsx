@@ -2,14 +2,18 @@ import { useState } from 'react'
 import type { Piece, PieceEdges } from '../../types'
 import { EdgePresets, EdgeSelector } from '../EdgeSelector'
 import { countEdges, NO_EDGES } from '../../utils/edges'
+import { lengthToMeters, mmToUnit, unitLabel, type Unit } from '../../utils/units'
 
 interface Props {
+  unit: Unit
   onAdd: (piece: Omit<Piece, 'id'>) => void
 }
 
-export function PieceForm({ onAdd }: Props) {
-  const [width, setWidth] = useState('300')
-  const [height, setHeight] = useState('200')
+export function PieceForm({ unit, onAdd }: Props) {
+  const defaultWidth = String(mmToUnit(300, unit))
+  const defaultHeight = String(mmToUnit(200, unit))
+  const [width, setWidth] = useState(defaultWidth)
+  const [height, setHeight] = useState(defaultHeight)
   const [label, setLabel] = useState('')
   const [quantity, setQuantity] = useState('1')
   const [canRotate, setCanRotate] = useState(true)
@@ -19,9 +23,8 @@ export function PieceForm({ onAdd }: Props) {
   const w = Number(width)
   const h = Number(height)
   const validDims = w > 0 && h > 0
-  const edgeMeters = validDims
-    ? ((edges.top ? w : 0) + (edges.bottom ? w : 0) + (edges.left ? h : 0) + (edges.right ? h : 0)) / 1000
-    : 0
+  const edgeLength = (edges.top ? w : 0) + (edges.bottom ? w : 0) + (edges.left ? h : 0) + (edges.right ? h : 0)
+  const edgeMeters = validDims ? lengthToMeters(edgeLength, unit) : 0
 
   function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
@@ -39,11 +42,11 @@ export function PieceForm({ onAdd }: Props) {
   return (
     <form onSubmit={handleSubmit} className="form">
       <div className="form-row">
-        <label>Ancho (mm)</label>
+        <label>Ancho ({unitLabel(unit)})</label>
         <input type="number" value={width} onChange={e => setWidth(e.target.value)} />
       </div>
       <div className="form-row">
-        <label>Alto (mm)</label>
+        <label>Alto ({unitLabel(unit)})</label>
         <input type="number" value={height} onChange={e => setHeight(e.target.value)} />
       </div>
       <div className="form-row">

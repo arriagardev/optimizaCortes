@@ -1,13 +1,17 @@
 import { useState } from 'react'
 import type { Board } from '../../types'
+import { mmToUnit, unitLabel, type Unit } from '../../utils/units'
 
 interface Props {
+  unit: Unit
   onAdd: (board: Omit<Board, 'id'>) => void
 }
 
-export function BoardForm({ onAdd }: Props) {
-  const [width, setWidth] = useState('2440')
-  const [height, setHeight] = useState('1220')
+export function BoardForm({ unit, onAdd }: Props) {
+  const defaultWidth = String(mmToUnit(2440, unit))
+  const defaultHeight = String(mmToUnit(1220, unit))
+  const [width, setWidth] = useState(defaultWidth)
+  const [height, setHeight] = useState(defaultHeight)
   const [material, setMaterial] = useState('MDF')
   const [quantity, setQuantity] = useState('1')
   const [error, setError] = useState('')
@@ -23,19 +27,19 @@ export function BoardForm({ onAdd }: Props) {
     }
     setError('')
     onAdd({ width: w, height: h, material, quantity: qty })
-    setWidth('2440')
-    setHeight('1220')
+    setWidth(defaultWidth)
+    setHeight(defaultHeight)
     setQuantity('1')
   }
 
   return (
     <form onSubmit={handleSubmit} className="form">
       <div className="form-row">
-        <label>Ancho (mm)</label>
+        <label>Ancho ({unitLabel(unit)})</label>
         <input type="number" value={width} onChange={e => setWidth(e.target.value)} />
       </div>
       <div className="form-row">
-        <label>Alto (mm)</label>
+        <label>Alto ({unitLabel(unit)})</label>
         <input type="number" value={height} onChange={e => setHeight(e.target.value)} />
       </div>
       <div className="form-row">

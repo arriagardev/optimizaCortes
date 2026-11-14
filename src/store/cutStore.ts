@@ -1,6 +1,7 @@
 import { useState, useCallback, useEffect } from 'react'
 import type { Board, Piece, CutSolution, AppSettings } from '../types'
 import { normalizeEdges, normalizePieces } from '../utils/edges'
+import { convertValue } from '../utils/units'
 
 const STORAGE_KEY = 'optimizaCortes_v1'
 const MAX_HISTORY = 30
@@ -10,6 +11,9 @@ const DEFAULT_SETTINGS: AppSettings = {
   unit: 'mm',
   algorithm: 'auto',
   pieceOrder: 'area',
+  boardCostPerM2: 0,
+  edgeCostPerMeter: 0,
+  currency: 'MXN',
 }
 const DEFAULT_BOARDS: Board[] = [
   { id: 'b1', width: 2440, height: 1220, material: 'MDF', quantity: 1 },
@@ -132,6 +136,18 @@ export function useCutStore() {
     setSolution(null)
   }, [boards, pieces, settings])
 
+  /** Cambia la unidad de medida convirtiendo tableros, piezas y grosor de cuchilla. */
+  const changeUnit = useCallback((unit: AppSettings['unit']) => {
+    if (unit === settings.unit) return
+    pushSnapshot(boards, pieces, settings)
+    const from = settings.unit
+    const dim = (value: number) => convertValue(value, from, unit, 2)
+    setBoards(prev => prev.map(b => ({ ...b, width: dim(b.width), height: dim(b.height) })))
+    setPieces(prev => prev.map(p => ({ ...p, width: dim(p.width), height: dim(p.height) })))
+    setSettings(prev => ({ ...prev, unit, bladeThickness: convertValue(prev.bladeThickness, from, unit, 4) }))
+    setSolution(null)
+  }, [boards, pieces, settings])
+
   const undo = useCallback(() => {
     if (past.length === 0) return
     const snap = past[past.length - 1]
@@ -161,7 +177,7 @@ export function useCutStore() {
     setSolution, setSettings,
     addBoard, updateBoard, removeBoard,
     addPiece, updatePiece, removePiece,
-    reorderPieces, loadProject,
+    reorderPieces, loadProject, changeUnit,
     undo, redo,
     canUndo: past.length > 0,
     canRedo: future.length > 0,

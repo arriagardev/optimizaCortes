@@ -2,16 +2,18 @@ import { useState } from 'react'
 import type { Piece } from '../../types'
 import { getPieceColor } from '../../utils/pieceColor'
 import { countEdges, hasEdges, pieceEdgeLength } from '../../utils/edges'
+import { lengthToMeters, formatNumber, unitLabel, type Unit } from '../../utils/units'
 import { EdgePresets, EdgeSelector } from '../EdgeSelector'
 
 interface Props {
   pieces: Piece[]
+  unit: Unit
   onRemove: (id: string) => void
   onUpdate: (id: string, updates: Partial<Piece>) => void
   onReorder: (fromIdx: number, toIdx: number) => void
 }
 
-export function PieceList({ pieces, onRemove, onUpdate, onReorder }: Props) {
+export function PieceList({ pieces, unit, onRemove, onUpdate, onReorder }: Props) {
   const [dragIndex, setDragIndex] = useState<number | null>(null)
   const [overIndex, setOverIndex] = useState<number | null>(null)
   const [dragReady, setDragReady] = useState<number | null>(null)
@@ -110,7 +112,7 @@ export function PieceList({ pieces, onRemove, onUpdate, onReorder }: Props) {
             </div>
             <div className="item-sub">
               <span className="item-dims">
-                {piece.width} × {piece.height} mm
+                {formatNumber(piece.width)} × {formatNumber(piece.height)} {unitLabel(unit)}
               </span>
               <button
                 type="button"
@@ -138,7 +140,9 @@ export function PieceList({ pieces, onRemove, onUpdate, onReorder }: Props) {
                 <div className="item-detail__meta">
                   <span>
                     {banded
-                      ? `${(pieceEdgeLength(piece) / 1000).toFixed(2)} m por pieza · ${((pieceEdgeLength(piece) * piece.quantity) / 1000).toFixed(2)} m en total`
+                      ? `${formatNumber(lengthToMeters(pieceEdgeLength(piece), unit))} m por pieza · ${formatNumber(
+                          lengthToMeters(pieceEdgeLength(piece) * piece.quantity, unit),
+                        )} m en total`
                       : 'Esta pieza no lleva canto'}
                   </span>
                   <div className="item-detail__actions">

@@ -49,6 +49,29 @@ export interface CutResult {
   efficiency: number
   /** Longitud total de canto de las piezas de este tablero, en la unidad de medida. */
   edgeLength: number
+  /** Secuencia de cortes guillotina (solo disponible con el algoritmo Guillotine). */
+  cutSteps?: PanelCut[]
+}
+
+/**
+ * Un corte recto sobre un panel. Las medidas van en la unidad del proyecto.
+ * `offset` se mide desde el borde izquierdo (vertical) o superior (horizontal)
+ * del panel que se está cortando.
+ */
+export interface PanelCut {
+  panelId: number
+  panelX: number
+  panelY: number
+  panelWidth: number
+  panelHeight: number
+  orientation: 'vertical' | 'horizontal'
+  offset: number
+  /** Largo del corte: alto del panel si es vertical, ancho si es horizontal. */
+  length: number
+  /** Nivel de anidamiento: primero se cortan los paneles de menor profundidad. */
+  depth: number
+  /** Pieza que se obtiene al separar este panel. */
+  label: string
 }
 
 export interface CutSolution {
@@ -65,4 +88,11 @@ export interface AppSettings {
   algorithm: 'guillotine' | 'maxrects' | 'auto'
   /** 'area' ordena por área (mejor empaque); 'manual' respeta el orden de la lista de piezas. */
   pieceOrder: 'area' | 'manual'
+  /** Costo del tablero por metro cuadrado (0 = sin costeo). */
+  boardCostPerM2: number
+  /** Costo del canto por metro lineal (0 = sin costeo). */
+  edgeCostPerMeter: number
+  currency: Currency
 }
+
+export type Currency = 'MXN' | 'USD' | 'EUR'
