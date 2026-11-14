@@ -2,7 +2,7 @@ import { describe, it, expect } from 'vitest'
 import { guillotineCut } from './guillotine'
 import type { Board, Piece, PieceEdges } from '../types'
 
-const board: Board = { id: 'b1', width: 1000, height: 500, material: 'MDF', quantity: 1 }
+const board: Board = { id: 'b1', width: 1000, height: 500, material: 'MDF', quantity: 1, enabled: true }
 const noEdges: PieceEdges = { top: false, right: false, bottom: false, left: false }
 
 function piece(p: Partial<Piece> & { id: string }): Piece {
@@ -13,6 +13,7 @@ function piece(p: Partial<Piece> & { id: string }): Piece {
     quantity: 1,
     canRotate: false,
     edges: noEdges,
+    enabled: true,
     ...p,
   }
 }
@@ -48,7 +49,7 @@ describe('guillotineCut', () => {
   })
 
   it('rotates a piece to fit when canRotate is true', () => {
-    const tallBoard: Board = { id: 'b2', width: 200, height: 600, material: 'MDF', quantity: 1 }
+    const tallBoard: Board = { id: 'b2', width: 200, height: 600, material: 'MDF', quantity: 1, enabled: true }
     const pieces: Piece[] = [
       piece({ id: 'p1', width: 600, height: 200, label: 'Rotatable', canRotate: true }),
     ]
@@ -58,7 +59,7 @@ describe('guillotineCut', () => {
   })
 
   it('accounts for blade thickness when packing', () => {
-    const smallBoard: Board = { id: 'b3', width: 100, height: 100, material: 'MDF', quantity: 1 }
+    const smallBoard: Board = { id: 'b3', width: 100, height: 100, material: 'MDF', quantity: 1, enabled: true }
     const pieces: Piece[] = [
       piece({ id: 'p1', width: 50, height: 100, label: 'A' }),
       piece({ id: 'p2', width: 50, height: 100, label: 'B' }),
@@ -70,7 +71,7 @@ describe('guillotineCut', () => {
   })
 
   it('gira los cantos junto con la pieza', () => {
-    const tallBoard: Board = { id: 'b4', width: 200, height: 600, material: 'MDF', quantity: 1 }
+    const tallBoard: Board = { id: 'b4', width: 200, height: 600, material: 'MDF', quantity: 1, enabled: true }
     const pieces: Piece[] = [
       piece({
         id: 'p1',
@@ -116,7 +117,7 @@ describe('guillotineCut', () => {
   })
 
   it('genera la secuencia de cortes ordenada por profundidad', () => {
-    const square: Board = { id: 'b5', width: 1000, height: 1000, material: 'MDF', quantity: 1 }
+    const square: Board = { id: 'b5', width: 1000, height: 1000, material: 'MDF', quantity: 1, enabled: true }
     const pieces: Piece[] = ['p1', 'p2', 'p3', 'p4'].map(id =>
       piece({ id, width: 500, height: 500, label: id }),
     )

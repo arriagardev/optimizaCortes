@@ -1,6 +1,7 @@
 import type { Board, Piece, CutSolution, AppSettings } from '../../types'
 import { generatePdf } from '../../utils/generatePdf'
 import { unplacedSummary } from '../../utils/edges'
+import { activePieces } from '../../utils/active'
 import {
   areaToM2,
   formatArea,
@@ -22,7 +23,7 @@ export function SummaryPanel({ solution, boards, pieces, settings }: Props) {
   const placed = solution.results.flatMap(r => r.placedPieces)
   const wasteArea = areaToM2(solution.results.reduce((sum, r) => sum + (r.totalArea - r.usedArea), 0), unit)
   const edgeMeters = lengthToMeters(solution.totalEdgeLength, unit)
-  const missing = unplacedSummary(pieces, placed)
+  const missing = unplacedSummary(activePieces(pieces), placed)
   const missingUnits = missing.reduce((sum, row) => sum + row.missing, 0)
 
   const boardAreaM2 = areaToM2(solution.results.reduce((sum, r) => sum + r.totalArea, 0), unit)

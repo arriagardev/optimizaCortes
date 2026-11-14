@@ -645,6 +645,31 @@ body {
   gap: 0;
 }
 
+.item-toggle {
+  display: flex;
+  align-items: center;
+  flex-shrink: 0;
+  cursor: pointer;
+}
+
+.item-toggle input {
+  width: 15px;
+  height: 15px;
+  margin: 0;
+  accent-color: #1a56db;
+  cursor: pointer;
+}
+
+/* Elementos deshabilitados: siguen en el proyecto pero no se optimizan. */
+.item-row--disabled {
+  opacity: 0.55;
+  background: #f1f2f4;
+}
+
+.item-row--disabled .item-label {
+  text-decoration: line-through;
+}
+
 .item-main {
   display: flex;
   align-items: center;

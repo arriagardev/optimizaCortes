@@ -34,7 +34,7 @@ export function PieceForm({ unit, onAdd }: Props) {
       return
     }
     setError('')
-    onAdd({ width: w, height: h, label: label || `${width}×${height}`, quantity: qty, canRotate, edges })
+    onAdd({ width: w, height: h, label: label || `${width}×${height}`, quantity: qty, canRotate, edges, enabled: true })
     setLabel('')
     setQuantity('1')
   }

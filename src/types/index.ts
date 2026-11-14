@@ -14,6 +14,8 @@ export interface Board {
   height: number
   material: string
   quantity: number
+  /** Si es false el tablero se conserva en el proyecto pero no se usa al optimizar. */
+  enabled: boolean
 }
 
 export interface Piece {
@@ -24,6 +26,8 @@ export interface Piece {
   quantity: number
   canRotate: boolean
   edges: PieceEdges
+  /** Si es false la pieza se conserva en el proyecto pero no se usa al optimizar. */
+  enabled: boolean
 }
 
 export interface PlacedPiece {
@@ -93,6 +97,11 @@ export interface AppSettings {
   /** Costo del canto por metro lineal (0 = sin costeo). */
   edgeCostPerMeter: number
   currency: Currency
+  /**
+   * 'end' (predeterminado) agrupa todas las secuencias de cortes al final del PDF;
+   * 'board' deja la secuencia de cada tablero junto a su layout.
+   */
+  pdfSequenceOrder: 'end' | 'board'
 }
 
 export type Currency = 'MXN' | 'USD' | 'EUR'

@@ -30,7 +30,11 @@ export function normalizeEdges(edges?: Partial<PieceEdges> | null): PieceEdges {
 
 /** Normaliza las piezas cargadas de localStorage o de un JSON, agregando campos nuevos. */
 export function normalizePieces(pieces: Piece[]): Piece[] {
-  return pieces.map(p => ({ ...p, edges: normalizeEdges(p.edges) }))
+  return pieces.map(p => ({
+    ...p,
+    edges: normalizeEdges(p.edges),
+    enabled: p.enabled !== false,
+  }))
 }
 
 export function hasEdges(edges?: Partial<PieceEdges> | null): boolean {

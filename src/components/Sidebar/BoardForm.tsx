@@ -26,7 +26,7 @@ export function BoardForm({ unit, onAdd }: Props) {
       return
     }
     setError('')
-    onAdd({ width: w, height: h, material, quantity: qty })
+    onAdd({ width: w, height: h, material, quantity: qty, enabled: true })
     setWidth(defaultWidth)
     setHeight(defaultHeight)
     setQuantity('1')

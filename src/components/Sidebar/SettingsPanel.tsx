@@ -62,6 +62,23 @@ export function SettingsPanel({ settings, onChange, onChangeUnit }: Props) {
           : 'Se respeta el orden de la lista de piezas; arrastra o usa ↑ ↓ para priorizar.'}
       </p>
 
+      <h4 className="form-section">Reporte PDF</h4>
+      <div className="form-row">
+        <label>Secuencia de cortes</label>
+        <select
+          value={settings.pdfSequenceOrder}
+          onChange={e => onChange({ ...settings, pdfSequenceOrder: e.target.value as AppSettings['pdfSequenceOrder'] })}
+        >
+          <option value="end">Al final del reporte</option>
+          <option value="board">Junto a cada tablero</option>
+        </select>
+      </div>
+      <p className="form-hint">
+        {settings.pdfSequenceOrder === 'end'
+          ? 'El resumen y los tableros van primero; las secuencias de cortes se agrupan al final.'
+          : 'Cada tablero incluye su layout, piezas y secuencia de cortes en la misma página.'}
+      </p>
+
       <h4 className="form-section">Costos</h4>
       <div className="form-row">
         <label>Tablero por m²</label>

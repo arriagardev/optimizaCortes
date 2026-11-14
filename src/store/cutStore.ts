@@ -1,6 +1,7 @@
 import { useState, useCallback, useEffect } from 'react'
 import type { Board, Piece, CutSolution, AppSettings } from '../types'
 import { normalizeEdges, normalizePieces } from '../utils/edges'
+import { normalizeBoards } from '../utils/active'
 import { convertValue } from '../utils/units'
 
 const STORAGE_KEY = 'optimizaCortes_v1'
@@ -14,9 +15,10 @@ const DEFAULT_SETTINGS: AppSettings = {
   boardCostPerM2: 0,
   edgeCostPerMeter: 0,
   currency: 'MXN',
+  pdfSequenceOrder: 'end',
 }
 const DEFAULT_BOARDS: Board[] = [
-  { id: 'b1', width: 2440, height: 1220, material: 'MDF', quantity: 1 },
+  { id: 'b1', width: 2440, height: 1220, material: 'MDF', quantity: 1, enabled: true },
 ]
 
 interface SavedProject {
@@ -52,8 +54,8 @@ function syncCounters(boards: Board[], pieces: Piece[]) {
 }
 
 const saved = loadSaved()
-const initialBoards = saved?.boards ?? DEFAULT_BOARDS
-// Normaliza piezas guardadas con versiones anteriores (sin canteado).
+const initialBoards = normalizeBoards(saved?.boards ?? DEFAULT_BOARDS)
+// Normaliza piezas guardadas con versiones anteriores (sin canteado / sin habilitado).
 const initialPieces = normalizePieces(saved?.pieces ?? [])
 syncCounters(initialBoards, initialPieces)
 
@@ -80,9 +82,10 @@ export function useCutStore() {
 
   const loadProject = useCallback((newBoards: Board[], newPieces: Piece[], newSettings: AppSettings) => {
     pushSnapshot(boards, pieces, settings)
+    const normalizedBoards = normalizeBoards(newBoards)
     const normalizedPieces = normalizePieces(newPieces)
-    syncCounters(newBoards, normalizedPieces)
-    setBoards(newBoards)
+    syncCounters(normalizedBoards, normalizedPieces)
+    setBoards(normalizedBoards)
     setPieces(normalizedPieces)
     // Spread defaults so imported old files still get new setting fields
     setSettings({ ...DEFAULT_SETTINGS, ...newSettings })

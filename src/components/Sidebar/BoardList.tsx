@@ -13,24 +13,35 @@ export function BoardList({ boards, unit, onRemove, onUpdate }: Props) {
 
   return (
     <ul className="item-list">
-      {boards.map(board => (
-        <li key={board.id} className="item-row">
-          <span className="item-label">{board.material}</span>
-          <span className="item-dims">
-            {formatNumber(board.width)} × {formatNumber(board.height)} {unitLabel(unit)}
-          </span>
-          <input
-            type="number"
-            className="qty-input"
-            value={board.quantity}
-            min="1"
-            onChange={e => onUpdate(board.id, { quantity: Number(e.target.value) })}
-          />
-          <button className="remove-btn" onClick={() => onRemove(board.id)} title="Eliminar">
-            ×
-          </button>
-        </li>
-      ))}
+      {boards.map(board => {
+        const enabled = board.enabled !== false
+        return (
+          <li key={board.id} className={`item-row${enabled ? '' : ' item-row--disabled'}`}>
+            <label className="item-toggle" title={enabled ? 'Deshabilitar tablero' : 'Habilitar tablero'}>
+              <input
+                type="checkbox"
+                checked={enabled}
+                onChange={e => onUpdate(board.id, { enabled: e.target.checked })}
+                aria-label={`Usar tablero ${board.material}`}
+              />
+            </label>
+            <span className="item-label">{board.material}</span>
+            <span className="item-dims">
+              {formatNumber(board.width)} × {formatNumber(board.height)} {unitLabel(unit)}
+            </span>
+            <input
+              type="number"
+              className="qty-input"
+              value={board.quantity}
+              min="1"
+              onChange={e => onUpdate(board.id, { quantity: Number(e.target.value) })}
+            />
+            <button className="remove-btn" onClick={() => onRemove(board.id)} title="Eliminar">
+              ×
+            </button>
+          </li>
+        )
+      })}
     </ul>
   )
 }

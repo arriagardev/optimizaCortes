@@ -7,6 +7,7 @@ import { SettingsPanel } from './SettingsPanel'
 import type { Board, Piece, AppSettings, CutSolution } from '../../types'
 import { guillotineCut } from '../../algorithms/guillotine'
 import { maxrectsCut } from '../../algorithms/maxrects'
+import { activeBoards, activePieces } from '../../utils/active'
 
 interface Props {
   boards: Board[]
@@ -41,19 +42,22 @@ export function Sidebar({
   const fileInputRef = useRef<HTMLInputElement>(null)
 
   function handleOptimize() {
+    // Solo los elementos habilitados participan; los deshabilitados se conservan.
+    const usableBoards = activeBoards(boards)
+    const usablePieces = activePieces(pieces)
     const bt = settings.bladeThickness
     const order = settings.pieceOrder
     let solution: CutSolution
 
     if (settings.algorithm === 'guillotine') {
-      solution = guillotineCut(boards, pieces, bt, order)
+      solution = guillotineCut(usableBoards, usablePieces, bt, order)
     } else if (settings.algorithm === 'maxrects') {
-      solution = maxrectsCut(boards, pieces, bt, order)
+      solution = maxrectsCut(usableBoards, usablePieces, bt, order)
     } else {
       // auto: run both and pick the one with higher efficiency
       // (en empate gana Guillotine, que además produce la secuencia de cortes)
-      const g = guillotineCut(boards, pieces, bt, order)
-      const m = maxrectsCut(boards, pieces, bt, order)
+      const g = guillotineCut(usableBoards, usablePieces, bt, order)
+      const m = maxrectsCut(usableBoards, usablePieces, bt, order)
       solution = m.totalEfficiency > g.totalEfficiency ? m : g
     }
 
@@ -122,7 +126,14 @@ export function Sidebar({
         <button
           className="btn-optimize"
           onClick={handleOptimize}
-          disabled={boards.length === 0 || pieces.length === 0}
+          disabled={activeBoards(boards).length === 0 || activePieces(pieces).length === 0}
+          title={
+            activeBoards(boards).length === 0
+              ? 'Habilita al menos un tablero'
+              : activePieces(pieces).length === 0
+                ? 'Habilita al menos una pieza'
+                : undefined
+          }
         >
           Optimizar cortes
         </button>

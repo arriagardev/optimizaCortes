@@ -6,6 +6,7 @@ Optimizador de cortes para tableros de madera, vidrio u otros materiales planos.
 
 - **Tableros**: define uno o más tableros con dimensiones, material y cantidad.
 - **Piezas**: agrega las piezas que necesitas cortar con ancho, alto, cantidad y si se permiten rotaciones.
+- **Habilitar / deshabilitar**: cada tablero y cada pieza se puede activar o desactivar sin borrarlo; los deshabilitados se conservan en el proyecto pero se ignoran al optimizar.
 - **Canteado**: marca en cada pieza qué lados llevan canto pegado (superior, derecho, inferior, izquierdo) y obtén los metros lineales totales.
 - **Configuración**: ajusta el grosor de la cuchilla (sierra), la unidad de medida (mm, cm, pulgadas), el algoritmo y el orden de las piezas.
 - **Unidades reales**: al cambiar de unidad se convierten tableros, piezas y cuchilla; el área y los metros lineales siempre se reportan en m² y m.
@@ -95,6 +96,20 @@ de canto, más la moneda (MXN, USD, EUR). El resumen y el PDF muestran:
 Si ambos precios quedan en 0 el costeo se oculta. El canto no consume material:
 solo suma al costo de producción.
 
+## Reporte PDF
+
+El reporte incluye el resumen, las tablas de tableros, piezas y canteado, una
+página por tablero con su layout y, por defecto, las **secuencias de cortes
+agrupadas al final** del documento.
+
+En *Config → Reporte PDF → Secuencia de cortes* se puede cambiar el orden:
+
+- **Al final del reporte** (predeterminado) — primero el resumen y los tableros,
+  y al final la secuencia de cortes de cada tablero.
+- **Junto a cada tablero** — cada página incluye layout, piezas y secuencia.
+
+Solo se incluyen los tableros y piezas habilitados.
+
 ## Stack tecnológico
 
 - React 19 + TypeScript (strict)
@@ -127,6 +142,7 @@ src/
 ├── store/
 │   └── cutStore.ts         # Estado global (tableros, piezas, solución, ajustes)
 ├── utils/
+│   ├── active.ts           # Normalización y filtro de tableros/piezas habilitados
 │   ├── cutSequence.ts      # Numeración de paneles y etiquetas de corte
 │   ├── edges.ts            # Lógica de canteado (giro, longitudes, resúmenes)
 │   ├── generatePdf.ts      # Reporte PDF
@@ -163,6 +179,8 @@ src/
 - [x] **Unidades reales** — al cambiar mm/cm/pulgadas se convierten tableros, piezas y cuchilla; áreas y metros se normalizan a m² y m
 - [x] **Costeo** — precio por m² de tablero y por metro de canto, con desglose y total en el resumen y el PDF
 - [x] **Secuencia de cortes por tablero** — lista guillotina paso a paso (panel, corte, medida, pieza) en la app y en el PDF
+- [x] **Habilitar / deshabilitar elementos** — tableros y piezas se conservan en el proyecto aunque no participen en la optimización
+- [x] **Orden del PDF configurable** — las secuencias de cortes pueden ir al final del reporte (predeterminado) o junto a cada tablero
 
 ### Próximos pasos
 - [ ] Compensar el espesor del canto en la dimensión de corte (pieza final = corte + canto)

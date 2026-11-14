@@ -22,6 +22,7 @@ function piece(p: Partial<Piece> & { id: string }): Piece {
     quantity: 1,
     canRotate: true,
     edges: allFalse,
+    enabled: true,
     ...p,
   }
 }

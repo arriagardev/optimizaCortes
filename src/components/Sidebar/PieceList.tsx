@@ -68,12 +68,14 @@ export function PieceList({ pieces, unit, onRemove, onUpdate, onReorder }: Props
       {pieces.map((piece, idx) => {
         const banded = hasEdges(piece.edges)
         const isExpanded = expanded === piece.id
+        const enabled = piece.enabled !== false
         return (
           <li
             key={piece.id}
             className={[
               'item-row',
               'item-row--piece',
+              enabled ? '' : 'item-row--disabled',
               isExpanded ? 'item-row--expanded' : '',
               dragIndex === idx ? 'dragging' : '',
               overIndex === idx && dragIndex !== idx ? 'drag-over' : '',
@@ -93,6 +95,17 @@ export function PieceList({ pieces, unit, onRemove, onUpdate, onReorder }: Props
               >
                 ⠿
               </span>
+              <label
+                className="item-toggle"
+                title={enabled ? 'Deshabilitar pieza' : 'Habilitar pieza'}
+              >
+                <input
+                  type="checkbox"
+                  checked={enabled}
+                  onChange={e => onUpdate(piece.id, { enabled: e.target.checked })}
+                  aria-label={`Usar pieza ${piece.label}`}
+                />
+              </label>
               <span
                 className="piece-swatch"
                 style={{ background: getPieceColor(piece.width, piece.height) }}
