@@ -1,34 +1,47 @@
 import type { Board } from '../../types'
+import { formatNumber, unitLabel, type Unit } from '../../utils/units'
 
 interface Props {
   boards: Board[]
+  unit: Unit
   onRemove: (id: string) => void
   onUpdate: (id: string, updates: Partial<Board>) => void
 }
 
-export function BoardList({ boards, onRemove, onUpdate }: Props) {
+export function BoardList({ boards, unit, onRemove, onUpdate }: Props) {
   if (boards.length === 0) return <p className="empty-hint">Sin tableros. Agrega uno arriba.</p>
 
   return (
     <ul className="item-list">
-      {boards.map(board => (
-        <li key={board.id} className="item-row">
-          <span className="item-label">{board.material}</span>
-          <span className="item-dims">
-            {board.width} × {board.height} mm
-          </span>
-          <input
-            type="number"
-            className="qty-input"
-            value={board.quantity}
-            min="1"
-            onChange={e => onUpdate(board.id, { quantity: Number(e.target.value) })}
-          />
-          <button className="remove-btn" onClick={() => onRemove(board.id)} title="Eliminar">
-            ×
-          </button>
-        </li>
-      ))}
+      {boards.map(board => {
+        const enabled = board.enabled !== false
+        return (
+          <li key={board.id} className={`item-row${enabled ? '' : ' item-row--disabled'}`}>
+            <label className="item-toggle" title={enabled ? 'Deshabilitar tablero' : 'Habilitar tablero'}>
+              <input
+                type="checkbox"
+                checked={enabled}
+                onChange={e => onUpdate(board.id, { enabled: e.target.checked })}
+                aria-label={`Usar tablero ${board.material}`}
+              />
+            </label>
+            <span className="item-label">{board.material}</span>
+            <span className="item-dims">
+              {formatNumber(board.width)} × {formatNumber(board.height)} {unitLabel(unit)}
+            </span>
+            <input
+              type="number"
+              className="qty-input"
+              value={board.quantity}
+              min="1"
+              onChange={e => onUpdate(board.id, { quantity: Number(e.target.value) })}
+            />
+            <button className="remove-btn" onClick={() => onRemove(board.id)} title="Eliminar">
+              ×
+            </button>
+          </li>
+        )
+      })}
     </ul>
   )
 }

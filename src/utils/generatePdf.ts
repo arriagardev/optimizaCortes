@@ -1,6 +1,17 @@
 import jsPDF from 'jspdf'
-import type { Board, Piece, CutSolution, AppSettings } from '../types'
+import type { Board, Piece, CutSolution, CutResult, AppSettings } from '../types'
 import { getPieceColorRgb } from './pieceColor'
+import { edgesLabel, hasEdges, summarizeEdgeBanding, unplacedSummary } from './edges'
+import { cutOrientationLabel, numberPanelCuts } from './cutSequence'
+import { activeBoards, activePieces } from './active'
+import {
+  areaToM2,
+  formatMoney,
+  formatMeters,
+  formatNumber,
+  lengthToMeters,
+  unitLabel,
+} from './units'
 
 const PAGE_W = 210
 const PAGE_H = 297
@@ -15,6 +26,9 @@ export function generatePdf(
 ): void {
   const doc = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4' })
   const unit = settings.unit
+  // Solo los elementos habilitados forman parte del reporte.
+  const usableBoards = activeBoards(boards)
+  const usablePieces = activePieces(pieces)
   let y = M
 
   // ── Helpers ───────────────────────────────────────────────────────
@@ -98,13 +112,27 @@ export function generatePdf(
   y += 7
 
   const totalPlaced = solution.results.reduce((s, r) => s + r.placedPieces.length, 0)
+  const placedPieces = solution.results.flatMap(r => r.placedPieces)
+  const bandingRows = summarizeEdgeBanding(usablePieces, placedPieces)
+  const edgeMeters = lengthToMeters(solution.totalEdgeLength, unit)
+  const boardAreaM2 = areaToM2(solution.results.reduce((s, r) => s + r.totalArea, 0), unit)
+  const boardCost = boardAreaM2 * (settings.boardCostPerM2 || 0)
+  const edgeCost = edgeMeters * (settings.edgeCostPerMeter || 0)
   const summaryRows: [string, string][] = [
     ['Tableros utilizados', String(solution.results.length)],
     ['Piezas colocadas', String(totalPlaced)],
     ['Piezas sin colocar', String(solution.unplacedPieces.length)],
     ['Eficiencia promedio', `${(solution.totalEfficiency * 100).toFixed(1)}%`],
-    ['Grosor de cuchilla', `${settings.bladeThickness} ${unit}`],
+    ['Grosor de cuchilla', `${formatNumber(settings.bladeThickness)} ${unitLabel(unit)}`],
+    ['Canto total', formatMeters(edgeMeters)],
   ]
+  if (settings.boardCostPerM2 > 0 || settings.edgeCostPerMeter > 0) {
+    summaryRows.push(
+      ['Costo de material', formatMoney(boardCost, settings.currency)],
+      ['Costo de canto', formatMoney(edgeCost, settings.currency)],
+      ['Costo total estimado', formatMoney(boardCost + edgeCost, settings.currency)],
+    )
+  }
 
   summaryRows.forEach(([label, val]) => {
     font(9)
@@ -125,28 +153,47 @@ export function generatePdf(
     'Tableros',
     ['Material', 'Ancho', 'Alto', 'Cantidad', `Área total (m²)`],
     [2, 55, 88, 118, 148],
-    boards.map(b => [
+    usableBoards.map(b => [
       b.material || '—',
-      String(b.width),
-      String(b.height),
+      formatNumber(b.width),
+      formatNumber(b.height),
       String(b.quantity),
-      ((b.width * b.height * b.quantity) / 1_000_000).toFixed(3),
-    ]),
-  )
+      formatNumber(areaToM2(b.width * b.height * b.quantity, unit), 3),
+    ]),  )
 
   // Pieces table
   table(
-    'Piezas requeridas',
-    ['Etiqueta', 'Ancho', 'Alto', 'Cantidad', 'Rotación'],
-    [2, 55, 88, 118, 148],
-    pieces.map(p => [
+    `Piezas requeridas (${unitLabel(unit)})`,
+    ['Etiqueta', 'Ancho', 'Alto', 'Cantidad', 'Rotación', 'Canto'],
+    [2, 52, 78, 100, 124, 152],
+    usablePieces.map(p => [
       p.label || '—',
-      String(p.width),
-      String(p.height),
+      formatNumber(p.width),
+      formatNumber(p.height),
       String(p.quantity),
       p.canRotate ? 'Sí' : 'No',
+      edgesLabel(p.edges),
     ]),
   )
+
+  // Edge banding summary
+  if (bandingRows.length > 0) {
+    const totalEdgeM = lengthToMeters(bandingRows.reduce((sum, row) => sum + row.length, 0), unit)
+    table(
+      'Canteado',
+      ['Etiqueta', 'Colocadas', 'Lados', 'Metros lineales'],
+      [2, 62, 96, 148],
+      [
+        ...bandingRows.map(row => [
+          row.label || '—',
+          String(row.placedCount),
+          edgesLabel(row.edges),
+          formatNumber(lengthToMeters(row.length, unit)),
+        ]),
+        ['Total', String(bandingRows.reduce((n, row) => n + row.placedCount, 0)), '', formatNumber(totalEdgeM)],
+      ],
+    )
+  }
 
   // Unplaced warning
   if (solution.unplacedPieces.length > 0) {
@@ -160,17 +207,47 @@ export function generatePdf(
     doc.text(`Advertencia — piezas sin colocar (${solution.unplacedPieces.length}):`, M + 3, y + 5.5)
     font(8)
     doc.setFont('helvetica', 'normal')
-    const labels = solution.unplacedPieces.map(p => p.label).join(', ')
+    const labels = unplacedSummary(usablePieces, placedPieces)
+      .map(row => `${row.piece.label} ×${row.missing}`)
+      .join(', ')
     doc.text(labels, M + 3, y + 11, { maxWidth: CW - 6 })
     y += 20
   }
 
   // ── ONE PAGE PER BOARD ────────────────────────────────────────────
 
-  solution.results.forEach((result, idx) => {
+  function renderCutSequence(result: CutResult, title: string, showHint = true) {
+    if (!result.cutSteps || result.cutSteps.length === 0) return
+    const steps = numberPanelCuts(result.cutSteps)
+    if (showHint) {
+      y += 4
+      font(7)
+      doc.setFont('helvetica', 'normal')
+      doc.setTextColor(120)
+      doc.text(
+        'Medida desde el borde izquierdo (corte vertical) o superior (corte horizontal) del panel.',
+        M, y,
+      )
+      y += 4
+    }
+    table(
+      title,
+      ['#', 'Panel', 'Corte', 'Medida', 'Pieza'],
+      [2, 12, 62, 102, 148],
+      steps.map((step, i) => [
+        String(i + 1),
+        `P${step.panelNo} · ${formatNumber(step.panelWidth)}×${formatNumber(step.panelHeight)}`,
+        cutOrientationLabel(step.orientation),
+        formatNumber(step.offset),
+        step.label,
+      ]),
+    )
+  }
+
+  function renderBoardPage(result: CutResult, idx: number, includeSequence: boolean) {
     newPage()
 
-    const boardMeta = boards.find(b => b.id === result.boardId)
+    const boardMeta = usableBoards.find(b => b.id === result.boardId)
     const material = boardMeta?.material ?? 'Tablero'
 
     // Board header
@@ -181,7 +258,7 @@ export function generatePdf(
 
     font(9)
     doc.setTextColor(80)
-    doc.text(`Dimensiones: ${result.boardWidth} × ${result.boardHeight} ${unit}`, M, y)
+    doc.text(`Dimensiones: ${formatNumber(result.boardWidth)} × ${formatNumber(result.boardHeight)} ${unitLabel(unit)}`, M, y)
     doc.text(`Eficiencia: ${(result.efficiency * 100).toFixed(1)}%`, PAGE_W - M, y, { align: 'right' })
     y += 4
     hLine()
@@ -223,6 +300,16 @@ export function generatePdf(
         const lbl = pp.label.length > 14 ? pp.label.slice(0, 13) + '…' : pp.label
         doc.text(lbl, px + pw / 2, py + ph / 2 + sz * 0.18, { align: 'center' })
       }
+
+      // Banded edges: grueso remarcado en cada lado con canto
+      if (hasEdges(pp.edges)) {
+        doc.setDrawColor(180, 83, 9)
+        doc.setLineWidth(Math.max(0.5, Math.min(1.6, Math.min(pw, ph) * 0.12)))
+        if (pp.edges.top) doc.line(px, py, px + pw, py)
+        if (pp.edges.bottom) doc.line(px, py + ph, px + pw, py + ph)
+        if (pp.edges.left) doc.line(px, py, px, py + ph)
+        if (pp.edges.right) doc.line(px + pw, py, px + pw, py + ph)
+      }
     })
 
     y += drawH + 6
@@ -231,11 +318,11 @@ export function generatePdf(
     font(8)
     doc.setFont('helvetica', 'normal')
     doc.setTextColor(80)
-    const usedM2 = (result.usedArea / 1_000_000).toFixed(4)
-    const totalM2 = (result.totalArea / 1_000_000).toFixed(4)
-    const wasteM2 = ((result.totalArea - result.usedArea) / 1_000_000).toFixed(4)
+    const usedM2 = formatNumber(areaToM2(result.usedArea, unit), 4)
+    const totalM2 = formatNumber(areaToM2(result.totalArea, unit), 4)
+    const wasteM2 = formatNumber(areaToM2(result.totalArea - result.usedArea, unit), 4)
     doc.text(
-      `Área usada: ${usedM2} m²   ·   Total: ${totalM2} m²   ·   Desperdicio: ${wasteM2} m²`,
+      `Área usada: ${usedM2} m²   ·   Total: ${totalM2} m²   ·   Desperdicio: ${wasteM2} m²   ·   Canto: ${formatNumber(lengthToMeters(result.edgeLength, unit))} m`,
       M, y,
     )
     y += 10
@@ -245,15 +332,15 @@ export function generatePdf(
 
     font(10, 'bold')
     doc.setTextColor(34)
-    doc.text(`Piezas colocadas (${result.placedPieces.length})`, M, y)
+    doc.text(`Piezas colocadas (${result.placedPieces.length}) · ${unitLabel(unit)}`, M, y)
     y += 7
 
     doc.setFillColor(237, 241, 247)
     doc.rect(M, y - 4.5, CW, 7, 'F')
     font(7, 'bold')
     doc.setTextColor(70)
-    const pHeaders = ['', 'Etiqueta', 'Ancho', 'Alto', 'Pos X', 'Pos Y', 'Girada']
-    const pColX =    [2,  8,         58,      85,    112,    138,    160]
+    const pHeaders = ['', 'Etiqueta', 'Ancho', 'Alto', 'Pos X', 'Pos Y', 'Girada', 'Canto']
+    const pColX =    [2,  8,         48,      66,    84,      104,    124,      148]
     pHeaders.forEach((h, i) => doc.text(h, M + pColX[i], y))
     y += 7
 
@@ -271,11 +358,64 @@ export function generatePdf(
       doc.rect(M + 2, y - 3.5, 3.5, 3.5, 'F')
 
       doc.setTextColor(34)
-      const cells = [pp.label, String(pp.width), String(pp.height), String(pp.x), String(pp.y), pp.rotated ? 'Sí' : 'No']
+      const cells = [pp.label, formatNumber(pp.width), formatNumber(pp.height), formatNumber(pp.x), formatNumber(pp.y), pp.rotated ? 'Sí' : 'No', edgesLabel(pp.edges)]
       cells.forEach((v, ci2) => doc.text(v, M + pColX[ci2 + 1], y))
       y += 7
     })
-  })
+
+    // Cut sequence (guillotine only)
+    if (!includeSequence) return
+    if (result.cutSteps && result.cutSteps.length > 0) {
+      renderCutSequence(result, `Secuencia de cortes (${unitLabel(unit)})`)
+    } else {
+      font(7)
+      doc.setFont('helvetica', 'normal')
+      doc.setTextColor(150)
+      doc.text('Sin secuencia de cortes: el layout se generó con MaxRects.', M, y)
+      y += 6
+    }
+  }
+
+  const sequenceAtEnd = settings.pdfSequenceOrder === 'end'
+  solution.results.forEach((result, idx) => renderBoardPage(result, idx, !sequenceAtEnd))
+
+  // ── CUT SEQUENCES AT THE END ──────────────────────────────────────
+  if (sequenceAtEnd) {
+    const withSequence = solution.results
+      .map((result, idx) => ({ result, idx }))
+      .filter(item => (item.result.cutSteps?.length ?? 0) > 0)
+
+    if (withSequence.length > 0) {
+      newPage()
+      font(16, 'bold')
+      doc.setTextColor(26, 86, 219)
+      doc.text('Secuencias de cortes', M, y + 6)
+      font(9)
+      doc.setTextColor(110)
+      doc.text(
+        'Medida desde el borde izquierdo (corte vertical) o superior (corte horizontal) del panel.',
+        M, y + 13,
+      )
+      y += 22
+
+      withSequence.forEach(({ result, idx }) => {
+        checkBreak(26)
+        const material = usableBoards.find(b => b.id === result.boardId)?.material ?? 'Tablero'
+        font(11, 'bold')
+        doc.setTextColor(34)
+        doc.text(`Tablero ${idx + 1} · ${material}`, M, y)
+        y += 7
+        renderCutSequence(result, `Cortes (${unitLabel(unit)})`, false)
+      })
+    } else if (solution.results.some(r => r.placedPieces.length > 0)) {
+      checkBreak(12)
+      font(8)
+      doc.setFont('helvetica', 'normal')
+      doc.setTextColor(150)
+      doc.text('Sin secuencia de cortes: el layout se generó con MaxRects.', M, y)
+      y += 6
+    }
+  }
 
   // ── Footer on every page ─────────────────────────────────────────
   const totalPages = doc.getNumberOfPages()

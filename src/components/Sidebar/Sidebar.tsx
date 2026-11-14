@@ -7,6 +7,7 @@ import { SettingsPanel } from './SettingsPanel'
 import type { Board, Piece, AppSettings, CutSolution } from '../../types'
 import { guillotineCut } from '../../algorithms/guillotine'
 import { maxrectsCut } from '../../algorithms/maxrects'
+import { activeBoards, activePieces } from '../../utils/active'
 
 interface Props {
   boards: Board[]
@@ -21,6 +22,7 @@ interface Props {
   onRemovePiece: (id: string) => void
   onReorderPiece: (fromIdx: number, toIdx: number) => void
   onChangeSettings: (s: AppSettings) => void
+  onChangeUnit: (u: AppSettings['unit']) => void
   onSolutionReady: (s: CutSolution) => void
   onExport: () => void
   onImportFile: (file: File) => void
@@ -33,25 +35,30 @@ export function Sidebar({
   boards, pieces, settings, isOpen,
   onAddBoard, onUpdateBoard, onRemoveBoard,
   onAddPiece, onUpdatePiece, onRemovePiece, onReorderPiece,
-  onChangeSettings, onSolutionReady,
+  onChangeSettings, onChangeUnit, onSolutionReady,
   onExport, onImportFile, onClose,
 }: Props) {
   const [tab, setTab] = useState<Tab>('boards')
   const fileInputRef = useRef<HTMLInputElement>(null)
 
   function handleOptimize() {
+    // Solo los elementos habilitados participan; los deshabilitados se conservan.
+    const usableBoards = activeBoards(boards)
+    const usablePieces = activePieces(pieces)
     const bt = settings.bladeThickness
+    const order = settings.pieceOrder
     let solution: CutSolution
 
     if (settings.algorithm === 'guillotine') {
-      solution = guillotineCut(boards, pieces, bt)
+      solution = guillotineCut(usableBoards, usablePieces, bt, order)
     } else if (settings.algorithm === 'maxrects') {
-      solution = maxrectsCut(boards, pieces, bt)
+      solution = maxrectsCut(usableBoards, usablePieces, bt, order)
     } else {
       // auto: run both and pick the one with higher efficiency
-      const g = guillotineCut(boards, pieces, bt)
-      const m = maxrectsCut(boards, pieces, bt)
-      solution = m.totalEfficiency >= g.totalEfficiency ? m : g
+      // (en empate gana Guillotine, que además produce la secuencia de cortes)
+      const g = guillotineCut(usableBoards, usablePieces, bt, order)
+      const m = maxrectsCut(usableBoards, usablePieces, bt, order)
+      solution = m.totalEfficiency > g.totalEfficiency ? m : g
     }
 
     onSolutionReady(solution)
@@ -90,18 +97,28 @@ export function Sidebar({
       <div className="sidebar-content">
         {tab === 'boards' && (
           <>
-            <BoardForm onAdd={onAddBoard} />
-            <BoardList boards={boards} onRemove={onRemoveBoard} onUpdate={onUpdateBoard} />
+            <BoardForm key={settings.unit} unit={settings.unit} onAdd={onAddBoard} />
+            <BoardList boards={boards} unit={settings.unit} onRemove={onRemoveBoard} onUpdate={onUpdateBoard} />
           </>
         )}
         {tab === 'pieces' && (
           <>
-            <PieceForm onAdd={onAddPiece} />
-            <PieceList pieces={pieces} onRemove={onRemovePiece} onUpdate={onUpdatePiece} onReorder={onReorderPiece} />
+            <PieceForm key={settings.unit} unit={settings.unit} onAdd={onAddPiece} />
+            <PieceList
+              pieces={pieces}
+              unit={settings.unit}
+              onRemove={onRemovePiece}
+              onUpdate={onUpdatePiece}
+              onReorder={onReorderPiece}
+            />
           </>
         )}
         {tab === 'settings' && (
-          <SettingsPanel settings={settings} onChange={onChangeSettings} />
+          <SettingsPanel
+            settings={settings}
+            onChange={onChangeSettings}
+            onChangeUnit={onChangeUnit}
+          />
         )}
       </div>
 
@@ -109,7 +126,14 @@ export function Sidebar({
         <button
           className="btn-optimize"
           onClick={handleOptimize}
-          disabled={boards.length === 0 || pieces.length === 0}
+          disabled={activeBoards(boards).length === 0 || activePieces(pieces).length === 0}
+          title={
+            activeBoards(boards).length === 0
+              ? 'Habilita al menos un tablero'
+              : activePieces(pieces).length === 0
+                ? 'Habilita al menos una pieza'
+                : undefined
+          }
         >
           Optimizar cortes
         </button>
