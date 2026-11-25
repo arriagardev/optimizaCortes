@@ -186,6 +186,7 @@ src/
 - [ ] Compensar el espesor del canto en la dimensión de corte (pieza final = corte + canto)
 - [ ] Varias estrategias de empaque por tablero (no solo el orden de piezas)
 - [ ] Exportar/importar CSV además de JSON
+- [ ] Permitir edición de lista de piezas ya agregadas, actualmente solo se puede modificar la cantidad de cada una y los cantos, pero no las dimensiones
 
 ## Uso
 
