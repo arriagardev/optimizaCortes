@@ -131,7 +131,7 @@ src/
 │   ├── Canvas/
 │   │   ├── CutCanvas.tsx   # Renderizado del layout en HTML5 Canvas
 │   │   ├── CutSequence.tsx # Lista de cortes para el taller
-│   │   └── SummaryPanel.tsx# Estadísticas de eficiencia y costos
+│   │   └── SummaryPanel.tsx # Estadísticas de eficiencia y costos
 │   └── Sidebar/
 │       ├── BoardForm.tsx   # Formulario para agregar tableros
 │       ├── BoardList.tsx   # Lista de tableros
@@ -150,6 +150,8 @@ src/
 │   └── units.ts            # Conversión de unidades, m², metros y dinero
 └── types/
     └── index.ts            # Board, Piece, PieceEdges, PlacedPiece, CutResult, CutSolution, AppSettings
+docs/
+└── comercializacion.md     # Plan de publicación, hosting y monetización
 ```
 
 ## Roadmap
@@ -182,11 +184,60 @@ src/
 - [x] **Habilitar / deshabilitar elementos** — tableros y piezas se conservan en el proyecto aunque no participen en la optimización
 - [x] **Orden del PDF configurable** — las secuencias de cortes pueden ir al final del reporte (predeterminado) o junto a cada tablero
 
-### Próximos pasos
-- [ ] Compensar el espesor del canto en la dimensión de corte (pieza final = corte + canto)
-- [ ] Varias estrategias de empaque por tablero (no solo el orden de piezas)
-- [ ] Exportar/importar CSV además de JSON
-- [ ] Permitir edición de lista de piezas ya agregadas, actualmente solo se puede modificar la cantidad de cada una y los cantos, pero no las dimensiones
+### Próximos Pasos
+
+Objetivo: evolucionar de una herramienta personal a un producto que se pueda publicar, recomendar y cobrar. El orden es por prioridad de negocio, no por dificultad técnica.
+
+#### 1. Núcleo del producto (imprescindible para cobrar)
+
+- [x] **Unidades reales** — mm/cm/pulgadas con conversión de tableros, piezas y cuchilla
+- [x] **Costeo** — precio por m² de tablero y por metro de canto, con total estimado
+- [x] **Secuencia de cortes** — pasos guillotina por panel, en la app y en el PDF
+- [x] **Recálculo automático** — el layout se invalida al editar tableros, piezas o ajustes
+- [x] **Canteado por pieza** — lados con canto, giro automático y metros lineales
+- [ ] **Dirección de veta** — campo de veta en tablero y pieza; las piezas con veta no deben rotar. Es el requisito nº 1 de un carpintero real.
+- [ ] **Recorte de borde (trim) y kerf independiente** — margen de refile por tablero y grosor de corte distinto en X e Y.
+- [ ] **Identificación numerada de piezas** — número de paso visible en cada pieza del canvas y del PDF, para el taller.
+- [ ] **Exportar layout como PNG/SVG** — además del PDF, para pegarlo en WhatsApp o en una orden de trabajo.
+- [ ] **Múltiples proyectos** — nombre, fecha y lista de trabajos guardados (hoy hay un único estado en `localStorage`).
+- [ ] **Retazos reutilizables** — registrar sobrantes aprovechables como tableros disponibles para el siguiente trabajo.
+- [ ] **Costo del desperdicio y ahorro** — desglosar el costo del material no usado y compararlo contra un layout manual.
+- [ ] **Compensar el espesor del canto** en la dimensión de corte (pieza final = corte + canto).
+- [ ] **Editar dimensiones de piezas ya agregadas** — hoy solo se puede cambiar cantidad y cantos.
+- [ ] **Exportar / importar CSV** además de JSON.
+
+#### 2. Calidad y confianza
+
+- [ ] Tests unitarios para **MaxRects** (hoy solo Guillotine tiene tests).
+- [ ] Test de invariantes: ninguna pieza se solapa y siempre se respeta el kerf.
+- [ ] Tests E2E del flujo completo (agregar piezas → optimizar → exportar) con Playwright.
+- [ ] Benchmarks de eficiencia con casos conocidos (closet, cocina, escritorio).
+- [ ] Accesibilidad: navegación por teclado, `aria-label`, contraste; auditoría Lighthouse.
+- [ ] Internacionalización ES / EN / PT.
+
+#### 3. Cuenta, nube y cobro
+
+- [ ] Backend ligero (Supabase o Firebase) para login y proyectos sincronizados.
+- [ ] Planes **Free / Pro** con límites claros (nº de piezas, proyectos, export sin marca de agua).
+- [ ] Pasarela de pago (Stripe, Mercado Pago o Paddle) y suscripciones.
+- [ ] Compartir proyecto por enlace y colaboración básica.
+- [ ] PWA instalable con funcionamiento offline.
+- [ ] Analítica respetuosa de la privacidad (Plausible / Umami).
+
+#### 4. Comercial
+
+- [ ] Landing page con dominio propio, casos de uso y demo.
+- [ ] SEO: "optimizador de cortes", "cálculo de corte de melamina", "programa para cortar MDF".
+- [ ] Videos cortos y contenido para carpinteros.
+- [ ] Página de precios, prueba gratuita y preguntas frecuentes.
+
+> El detalle de hosting, dominio, cobros, legal y plan de lanzamiento está en [docs/comercializacion.md](docs/comercializacion.md).
+
+## Publicación
+
+El sitio se publica automáticamente en **GitHub Pages** al hacer push a `main` (ver `.github/workflows/deploy.yml`). La URL es `https://<usuario>.github.io/optimizaCortes/`, por eso `vite.config.ts` usa `base: '/optimizaCortes/'`.
+
+Para un dominio propio o para cobrar suscripciones conviene migrar a un hosting pensado para productos (Cloudflare Pages, Vercel o Netlify) y cambiar `base` a `'/'`. Comparativa y pasos: [docs/comercializacion.md](docs/comercializacion.md).
 
 ## Uso
 
