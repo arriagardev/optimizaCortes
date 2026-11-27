@@ -1,5 +1,7 @@
 import type { Board, Piece, CutSolution, CutResult, PlacedPiece, PieceEdges, PanelCut } from '../types'
 import { normalizeEdges, placedEdgeLength, rotateEdges } from '../utils/edges'
+import { allowedRotations } from '../utils/grain'
+import { DEFAULT_CUT_OPTIONS, type CutOptions } from './options'
 
 interface FreeRect {
   x: number
@@ -19,21 +21,24 @@ interface PieceInstance {
   height: number
   canRotate: boolean
   edges: PieceEdges
+  grain: boolean
 }
 
 /**
  * Guillotine bin packing algorithm (Best Area Fit heuristic).
  * Splits free rectangles using guillotine cuts after each placement.
  *
- * `pieceOrder` controls the placement priority: 'area' sorts largest first
- * (best packing quality); 'manual' respects the order of the pieces list.
+ * `kerfX`/`kerfY` permiten un grosor de corte distinto en cada eje (sierra
+ * escuadradora vs. vertical). `board.trim` descarta un margen en los cuatro
+ * bordes antes de acomodar piezas (refile).
  */
 export function guillotineCut(
   boards: Board[],
   pieces: Piece[],
-  bladeThickness = 3,
-  pieceOrder: 'area' | 'manual' = 'area',
+  options: Partial<CutOptions> = {},
 ): CutSolution {
+  const { kerfX, kerfY, edgeThickness, pieceOrder } = { ...DEFAULT_CUT_OPTIONS, ...options }
+
   const pieceInstances: PieceInstance[] = []
   for (const piece of pieces) {
     for (let i = 0; i < piece.quantity; i++) {
@@ -44,6 +49,7 @@ export function guillotineCut(
         height: piece.height,
         canRotate: piece.canRotate,
         edges: normalizeEdges(piece.edges),
+        grain: Boolean(piece.grain),
       })
     }
   }
@@ -57,7 +63,7 @@ export function guillotineCut(
   for (const board of boards) {
     for (let q = 0; q < board.quantity; q++) {
       if (remaining.length === 0) break
-      const { result, newRemaining } = packBoard(board, remaining, bladeThickness)
+      const { result, newRemaining } = packBoard(board, remaining, kerfX, kerfY, edgeThickness)
       results.push(result)
       remaining.splice(0, remaining.length, ...newRemaining)
     }
@@ -77,13 +83,19 @@ export function guillotineCut(
 function packBoard(
   board: Board,
   pieces: PieceInstance[],
-  bladeThickness: number,
+  kerfX: number,
+  kerfY: number,
+  edgeThickness: number,
 ): { result: CutResult; newRemaining: PieceInstance[] } {
+  const trim = Math.max(0, board.trim || 0)
+  const usableW = Math.max(0, board.width - trim * 2)
+  const usableH = Math.max(0, board.height - trim * 2)
+
   const rootId = 1
   let nextPanelId = 2
-  const freeRects: FreeRect[] = [
-    { x: 0, y: 0, width: board.width, height: board.height, id: rootId, depth: 0 },
-  ]
+  const freeRects: FreeRect[] = usableW > 0 && usableH > 0
+    ? [{ x: trim, y: trim, width: usableW, height: usableH, id: rootId, depth: 0 }]
+    : []
   const cutSteps: PanelCut[] = []
   const placedPieces: PlacedPiece[] = []
   const remaining = [...pieces]
@@ -91,11 +103,14 @@ function packBoard(
 
   for (let i = 0; i < remaining.length; i++) {
     const piece = remaining[i]
-    const fit = findBestFit(freeRects, piece)
+    const fit = findBestFit(freeRects, piece, board, edgeThickness)
     if (!fit) continue
 
-    const pw = fit.rotated ? piece.height : piece.width
-    const ph = fit.rotated ? piece.width : piece.height
+    const baseW = fit.rotated ? piece.height : piece.width
+    const baseH = fit.rotated ? piece.width : piece.height
+    const rotEdges = fit.rotated ? rotateEdges(piece.edges) : piece.edges
+    const pw = baseW - (rotEdges.left ? edgeThickness : 0) - (rotEdges.right ? edgeThickness : 0)
+    const ph = baseH - (rotEdges.top ? edgeThickness : 0) - (rotEdges.bottom ? edgeThickness : 0)
     const rect = fit.rect
 
     placedPieces.push({
@@ -107,11 +122,12 @@ function packBoard(
       height: ph,
       rotated: fit.rotated,
       label: piece.label,
+      step: placedPieces.length + 1,
       edges: fit.rotated ? rotateEdges(piece.edges) : piece.edges,
     })
 
-    const rightW = rect.width - pw - bladeThickness
-    const bottomH = rect.height - ph - bladeThickness
+    const rightW = rect.width - pw - kerfX
+    const bottomH = rect.height - ph - kerfY
 
     // Corte vertical: separa la pieza (más su cuchilla) del resto del panel.
     // El panel que queda a la izquierda conserva el alto completo.
@@ -152,7 +168,7 @@ function packBoard(
     freeRects.splice(fit.rectIndex, 1)
     if (rightW > 0) {
       freeRects.push({
-        x: rect.x + pw + bladeThickness,
+        x: rect.x + pw + kerfX,
         y: rect.y,
         width: rightW,
         height: rect.height,
@@ -163,7 +179,7 @@ function packBoard(
     if (bottomH > 0) {
       freeRects.push({
         x: rect.x,
-        y: rect.y + ph + bladeThickness,
+        y: rect.y + ph + kerfY,
         width: pw,
         height: bottomH,
         id: nextPanelId++,
@@ -180,13 +196,15 @@ function packBoard(
 
   const newRemaining = remaining.filter((_, i) => !placedIndices.includes(i))
   const usedArea = placedPieces.reduce((sum, p) => sum + p.width * p.height, 0)
-  const totalArea = board.width * board.height
+  const totalArea = usableW * usableH
 
   return {
     result: {
       boardId: board.id,
       boardWidth: board.width,
       boardHeight: board.height,
+      grain: board.grain,
+      trim,
       placedPieces,
       usedArea,
       totalArea,
@@ -201,6 +219,8 @@ function packBoard(
 function findBestFit(
   freeRects: FreeRect[],
   piece: PieceInstance,
+  board: Board,
+  edgeThickness: number,
 ): { rect: FreeRect; rectIndex: number; rotated: boolean } | null {
   let bestScore = Infinity
   let bestIndex = -1
@@ -209,21 +229,19 @@ function findBestFit(
   for (let i = 0; i < freeRects.length; i++) {
     const rect = freeRects[i]
 
-    if (piece.width <= rect.width && piece.height <= rect.height) {
-      const score = rect.width * rect.height - piece.width * piece.height
-      if (score < bestScore) {
-        bestScore = score
-        bestIndex = i
-        bestRotated = false
-      }
-    }
+    for (const rotated of allowedRotations(piece.grain, piece.canRotate, board.grain)) {
+      const baseW = rotated ? piece.height : piece.width
+      const baseH = rotated ? piece.width : piece.height
+      const rotEdges = rotated ? rotateEdges(piece.edges) : piece.edges
+      const w = baseW - (rotEdges.left ? edgeThickness : 0) - (rotEdges.right ? edgeThickness : 0)
+      const h = baseH - (rotEdges.top ? edgeThickness : 0) - (rotEdges.bottom ? edgeThickness : 0)
+      if (w > rect.width || h > rect.height) continue
 
-    if (piece.canRotate && piece.height <= rect.width && piece.width <= rect.height) {
-      const score = rect.width * rect.height - piece.height * piece.width
+      const score = rect.width * rect.height - w * h
       if (score < bestScore) {
         bestScore = score
         bestIndex = i
-        bestRotated = true
+        bestRotated = rotated
       }
     }
   }

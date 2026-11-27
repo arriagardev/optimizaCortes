@@ -8,12 +8,19 @@ export interface PieceEdges {
   left: boolean
 }
 
+/** Dirección de la veta del tablero respecto a sus dimensiones. */
+export type GrainDirection = 'none' | 'width' | 'height'
+
 export interface Board {
   id: string
   width: number
   height: number
   material: string
   quantity: number
+  /** Veta del tablero: 'width' corre a lo ancho, 'height' a lo alto. */
+  grain: GrainDirection
+  /** Margen de refile que se descarta en cada borde, en la unidad del proyecto. */
+  trim: number
   /** Si es false el tablero se conserva en el proyecto pero no se usa al optimizar. */
   enabled: boolean
 }
@@ -26,6 +33,8 @@ export interface Piece {
   quantity: number
   canRotate: boolean
   edges: PieceEdges
+  /** La pieza debe conservar la veta del tablero a lo largo de su ancho. */
+  grain: boolean
   /** Si es false la pieza se conserva en el proyecto pero no se usa al optimizar. */
   enabled: boolean
 }
@@ -39,6 +48,8 @@ export interface PlacedPiece {
   height: number
   rotated: boolean
   label: string
+  /** Número de la pieza dentro del tablero (orden de colocación), para el taller. */
+  step: number
   /** Lados con canto ya rotados a la orientación en que quedó la pieza en el tablero. */
   edges: PieceEdges
 }
@@ -47,8 +58,13 @@ export interface CutResult {
   boardId: string
   boardWidth: number
   boardHeight: number
+  /** Veta del tablero usada al optimizar (para indicarla en el layout). */
+  grain: GrainDirection
+  /** Refile aplicado en cada borde al calcular el área útil. */
+  trim: number
   placedPieces: PlacedPiece[]
   usedArea: number
+  /** Área útil del tablero (descontando el refile). */
   totalArea: number
   efficiency: number
   /** Longitud total de canto de las piezas de este tablero, en la unidad de medida. */
@@ -87,7 +103,12 @@ export interface CutSolution {
 }
 
 export interface AppSettings {
-  bladeThickness: number
+  /** Grosor del corte vertical (a lo ancho del tablero). */
+  kerfX: number
+  /** Grosor del corte horizontal (a lo alto del tablero). */
+  kerfY: number
+  /** Espesor del material de canto que se compensa en la dimensión de corte. */
+  edgeThickness: number
   unit: 'mm' | 'cm' | 'in'
   algorithm: 'guillotine' | 'maxrects' | 'auto'
   /** 'area' ordena por área (mejor empaque); 'manual' respeta el orden de la lista de piezas. */

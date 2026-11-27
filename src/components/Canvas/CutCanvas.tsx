@@ -1,8 +1,7 @@
 import { useRef, useEffect, useState } from 'react'
 import type { CutResult } from '../../types'
-import { getPieceColor } from '../../utils/pieceColor'
-import { hasEdges } from '../../utils/edges'
-import { formatNumber, lengthToMeters, unitLabel, type Unit } from '../../utils/units'
+import type { Unit } from '../../utils/units'
+import { drawBoard } from '../../utils/drawLayout'
 import { CutSequence } from './CutSequence'
 
 interface Props {
@@ -48,108 +47,8 @@ export function CutCanvas({ results, unit }: Props) {
     const ctx = canvas.getContext('2d')
     if (!ctx) return
 
-    const padding = 20
-    const maxW = canvas.width - padding * 2
-    const maxH = canvas.height - padding * 2
-
-    const scaleX = maxW / result.boardWidth
-    const scaleY = maxH / result.boardHeight
-    const scale = Math.min(scaleX, scaleY)
-
-    const drawW = result.boardWidth * scale
-    const drawH = result.boardHeight * scale
-    const offsetX = padding + (maxW - drawW) / 2
-    const offsetY = padding + (maxH - drawH) / 2
-
     ctx.clearRect(0, 0, canvas.width, canvas.height)
-
-    // Board fill
-    ctx.fillStyle = '#F5F0E8'
-    ctx.fillRect(offsetX, offsetY, drawW, drawH)
-
-    // Diagonal hatching to highlight waste areas
-    ctx.save()
-    ctx.beginPath()
-    ctx.rect(offsetX, offsetY, drawW, drawH)
-    ctx.clip()
-    ctx.strokeStyle = 'rgba(160, 110, 60, 0.20)'
-    ctx.lineWidth = 0.8
-    const step = 10
-    ctx.beginPath()
-    for (let d = -drawH; d < drawW; d += step) {
-      ctx.moveTo(offsetX + d, offsetY)
-      ctx.lineTo(offsetX + d + drawW + drawH, offsetY + drawH)
-    }
-    ctx.stroke()
-    ctx.restore()
-
-    // Board border
-    ctx.strokeStyle = '#666'
-    ctx.lineWidth = 2
-    ctx.strokeRect(offsetX, offsetY, drawW, drawH)
-
-    // Dimensions label
-    ctx.fillStyle = '#333'
-    ctx.font = '13px sans-serif'
-    ctx.fillText(`${formatNumber(result.boardWidth)} × ${formatNumber(result.boardHeight)} ${unitLabel(unit)}`, offsetX, offsetY - 6)
-
-    // Placed pieces (solid fill covers hatching)
-    result.placedPieces.forEach(piece => {
-      const px = offsetX + piece.x * scale
-      const py = offsetY + piece.y * scale
-      const pw = piece.width * scale
-      const ph = piece.height * scale
-
-      const color = getPieceColor(piece.width, piece.height)
-      ctx.fillStyle = color + 'CC'
-      ctx.fillRect(px, py, pw, ph)
-      ctx.strokeStyle = color
-      ctx.lineWidth = 1.5
-      ctx.strokeRect(px, py, pw, ph)
-
-      // Cantos pegados: línea gruesa sobre cada lado que lleva canto
-      if (hasEdges(piece.edges)) {
-        const lw = Math.max(2, Math.min(5, Math.min(pw, ph) * 0.08))
-        const inset = lw / 2
-        ctx.strokeStyle = '#b45309'
-        ctx.lineWidth = lw
-        ctx.beginPath()
-        if (piece.edges.top) {
-          ctx.moveTo(px + inset, py + inset)
-          ctx.lineTo(px + pw - inset, py + inset)
-        }
-        if (piece.edges.bottom) {
-          ctx.moveTo(px + inset, py + ph - inset)
-          ctx.lineTo(px + pw - inset, py + ph - inset)
-        }
-        if (piece.edges.left) {
-          ctx.moveTo(px + inset, py + inset)
-          ctx.lineTo(px + inset, py + ph - inset)
-        }
-        if (piece.edges.right) {
-          ctx.moveTo(px + pw - inset, py + inset)
-          ctx.lineTo(px + pw - inset, py + ph - inset)
-        }
-        ctx.stroke()
-      }
-
-      if (pw > 30 && ph > 18) {
-        ctx.fillStyle = '#000'
-        ctx.font = `${Math.min(12, ph * 0.3)}px sans-serif`
-        ctx.textAlign = 'center'
-        ctx.textBaseline = 'middle'
-        ctx.fillText(piece.label, px + pw / 2, py + ph / 2)
-        ctx.textAlign = 'left'
-        ctx.textBaseline = 'alphabetic'
-      }
-    })
-
-    const eff = (result.efficiency * 100).toFixed(1)
-    ctx.fillStyle = '#222'
-    ctx.font = '14px sans-serif'
-    const footer = [`Eficiencia: ${eff}%`, `${result.placedPieces.length} piezas`]
-    if (result.edgeLength > 0) footer.push(`Canto: ${formatNumber(lengthToMeters(result.edgeLength, unit))} m`)
-    ctx.fillText(footer.join('  |  '), offsetX, offsetY + drawH + 18)
+    drawBoard(ctx, result, { width: canvas.width, height: canvas.height, unit })
   }, [result, canvasSize, unit])
 
   if (results.length === 0) {

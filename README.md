@@ -4,17 +4,22 @@ Optimizador de cortes para tableros de madera, vidrio u otros materiales planos.
 
 ## Funcionalidad
 
-- **Tableros**: define uno o más tableros con dimensiones, material y cantidad.
-- **Piezas**: agrega las piezas que necesitas cortar con ancho, alto, cantidad y si se permiten rotaciones.
+- **Tableros**: define uno o más tableros con dimensiones, material, cantidad, dirección de veta y margen de refile.
+- **Piezas**: agrega las piezas que necesitas cortar con ancho, alto, cantidad, rotación permitida y si requieren veta. Las dimensiones, la etiqueta, el canteado y la veta se pueden editar después.
 - **Habilitar / deshabilitar**: cada tablero y cada pieza se puede activar o desactivar sin borrarlo; los deshabilitados se conservan en el proyecto pero se ignoran al optimizar.
 - **Canteado**: marca en cada pieza qué lados llevan canto pegado (superior, derecho, inferior, izquierdo) y obtén los metros lineales totales.
-- **Configuración**: ajusta el grosor de la cuchilla (sierra), la unidad de medida (mm, cm, pulgadas), el algoritmo y el orden de las piezas.
-- **Unidades reales**: al cambiar de unidad se convierten tableros, piezas y cuchilla; el área y los metros lineales siempre se reportan en m² y m.
-- **Costeo**: precio por m² de tablero y por metro de canto para obtener el costo estimado del proyecto.
+- **Veta**: el tablero declara si su veta corre a lo ancho o a lo alto; las piezas marcadas como «requiere veta» se giran para conservar esa dirección aunque tengan la rotación deshabilitada.
+- **Refile y kerf**: margen de recorte en los cuatro bordes del tablero y grosor de corte independiente en X e Y.
+- **Configuración**: ajusta la cuchilla vertical y horizontal, la unidad de medida (mm, cm, pulgadas), el algoritmo y el orden de las piezas.
+- **Unidades reales**: al cambiar de unidad se convierten tableros, piezas, refile y cuchilla; el área y los metros lineales siempre se reportan en m² y m.
+- **Costeo**: precio por m² de tablero y por metro de canto para obtener el costo estimado, con el costo del desperdicio desglosado.
+- **Múltiples proyectos**: guarda, abre y elimina trabajos con nombre y fecha desde la pestaña *Proyectos*.
+- **Retazos reutilizables**: detecta los sobrantes aprovechables de cada layout y agrégalos como tableros del siguiente trabajo, agrupando los idénticos por cantidad.
 - **Optimización**: el algoritmo distribuye automáticamente las piezas sobre los tableros disponibles.
-- **Visualización**: el resultado se muestra en un canvas interactivo con cada tablero y sus cortes etiquetados; los cantos se resaltan en color ámbar.
+- **Visualización**: el resultado se muestra en un canvas con cada tablero y sus cortes etiquetados; los cantos se resaltan en color ámbar y cada pieza lleva su número de paso.
 - **Secuencia de cortes**: lista de cortes por panel, lista para el taller, con medida y largo de cada corte.
-- **Estadísticas**: panel de resumen con área usada, área total, eficiencia, desperdicio, canto total y costo estimado.
+- **Exportación**: reporte PDF, layout en PNG y SVG vectorial, y proyecto en JSON.
+- **Estadísticas**: panel de resumen con área usada, área útil, eficiencia, desperdicio, canto total y costo estimado.
 
 ## Algoritmos
 
@@ -33,6 +38,8 @@ La app incluye dos algoritmos de bin-packing seleccionables desde la configuraci
 ### Modo Auto
 En modo *Auto* (predeterminado) ambos algoritmos se ejecutan y se usa el resultado con mayor eficiencia promedio.
 
+Ambos algoritmos respetan el refile del tablero, el kerf independiente por eje y la dirección de veta de las piezas.
+
 ## Canteado (edge banding)
 
 Cada pieza puede llevar canto pegado en cualquier combinación de sus cuatro lados.
@@ -45,6 +52,28 @@ Se configura al agregarla o después, desde la lista de piezas (botón **Canto**
 - **En el layout**: los lados con canto se dibujan como una línea gruesa ámbar, tanto en el canvas como en el PDF.
 
 El canto no consume material del tablero: es información de producción para el taller.
+
+## Veta, refile y kerf
+
+- **Veta del tablero**: *Sin veta*, *Veta horizontal* (↔, corre a lo ancho) o *Veta vertical* (↕, corre a lo alto). Se elige al crear el tablero o desde **Editar** en la lista.
+- **Veta de la pieza**: al marcarla, la pieza solo se coloca con su ancho alineado a la veta del tablero. Si el tablero tiene veta, la orientación es obligatoria y se ignora «Permitir rotación».
+- **Refile**: margen que se descarta en los cuatro bordes del tablero antes de acomodar piezas. El área útil y la eficiencia se calculan sobre la zona ya recortada y el layout dibuja el borde descartado con línea discontinua.
+- **Kerf X / Y**: grosor del corte vertical y horizontal por separado, para sierras que no cortan igual en cada eje. Sustituye al antiguo valor único de cuchilla, que se migra automáticamente.
+
+## Exportación de layout
+
+Además del PDF, el resumen permite descargar el layout completo:
+
+- **PNG**: todos los tableros apilados en una sola imagen, útil para WhatsApp u órdenes de trabajo.
+- **SVG**: la misma composición en vectorial, para imprimir a cualquier tamaño o editar.
+- **PDF**: reporte con resumen, tablas, layout por página y secuencia de cortes.
+
+El canvas y los exportadores comparten el mismo dibujo (`drawLayout.ts`), así que piezas, cantos, numeración, veta y refile se ven igual en pantalla y en los archivos.
+
+## Proyectos y retazos
+
+- **Proyectos**: la pestaña *Proyectos* guarda una copia con nombre y fecha de los tableros, piezas y ajustes actuales, y permite abrirla o eliminarla. El proyecto activo se sigue guardando solo en `localStorage`.
+- **Retazos**: al optimizar, la app busca sobrantes rectangulares de al menos 2 % del área útil, agrupa los idénticos y ofrece agregarlos como tableros («retazo») para el siguiente trabajo.
 
 ## Orden de las piezas
 
@@ -90,6 +119,8 @@ de canto, más la moneda (MXN, USD, EUR). El resumen y el PDF muestran:
 
 - **Costo de material**: área de los tableros usados —incluido el desperdicio—
   por el precio por m².
+- **Costo del desperdicio**: la parte del material que no se aprovecha, valorada
+  al mismo precio por m².
 - **Costo de canto**: metros lineales totales por el precio por metro.
 - **Costo total estimado**.
 
@@ -124,28 +155,37 @@ Solo se incluyen los tableros y piezas habilitados.
 src/
 ├── algorithms/
 │   ├── guillotine.ts       # Guillotine bin-packing (Best Area Fit)
+│   ├── guillotine.test.ts  # Tests de Guillotine (kerf, veta, refile, secuencia)
 │   ├── maxrects.ts         # Maximal Rectangles bin-packing (BSSF)
-│   └── guillotine.test.ts  # Tests unitarios
+│   ├── maxrects.test.ts    # Tests de MaxRects
+│   └── options.ts          # Opciones de corte compartidas (kerf X/Y, orden)
 ├── components/
 │   ├── EdgeSelector.tsx    # Selector visual de cantos
 │   ├── Canvas/
 │   │   ├── CutCanvas.tsx   # Renderizado del layout en HTML5 Canvas
 │   │   ├── CutSequence.tsx # Lista de cortes para el taller
-│   │   └── SummaryPanel.tsx # Estadísticas de eficiencia y costos
+│   │   └── SummaryPanel.tsx # Estadísticas, exportación, costos y retazos
 │   └── Sidebar/
-│       ├── BoardForm.tsx   # Formulario para agregar tableros
-│       ├── BoardList.tsx   # Lista de tableros
+│       ├── BoardForm.tsx   # Formulario para agregar tableros (veta, refile)
+│       ├── BoardList.tsx   # Lista de tableros con edición de veta y refile
 │       ├── PieceForm.tsx   # Formulario para agregar piezas
-│       ├── PieceList.tsx   # Lista de piezas (canto, orden, cantidad)
-│       ├── SettingsPanel.tsx # Configuración (cuchilla, unidad, algoritmo, costos)
+│       ├── PieceList.tsx   # Lista de piezas (dimensiones, canto, veta, orden)
+│       ├── ProjectsPanel.tsx # Biblioteca de proyectos guardados
+│       ├── SettingsPanel.tsx # Configuración (kerf, unidad, algoritmo, costos)
 │       └── Sidebar.tsx     # Contenedor del panel lateral
 ├── store/
-│   └── cutStore.ts         # Estado global (tableros, piezas, solución, ajustes)
+│   └── cutStore.ts         # Estado global, proyectos guardados y migraciones
 ├── utils/
 │   ├── active.ts           # Normalización y filtro de tableros/piezas habilitados
 │   ├── cutSequence.ts      # Numeración de paneles y etiquetas de corte
+│   ├── drawLayout.ts       # Dibujo compartido entre canvas y exportadores
 │   ├── edges.ts            # Lógica de canteado (giro, longitudes, resúmenes)
+│   ├── edges.test.ts       # Tests de canteado
+│   ├── exportLayout.ts     # Exportación del layout a PNG y SVG
+│   ├── freeRects.ts        # Detección de retazos aprovechables
+│   ├── freeRects.test.ts   # Tests de retazos
 │   ├── generatePdf.ts      # Reporte PDF
+│   ├── grain.ts            # Dirección de veta y rotaciones permitidas
 │   ├── pieceColor.ts       # Color consistente por dimensión
 │   └── units.ts            # Conversión de unidades, m², metros y dinero
 └── types/
@@ -183,6 +223,15 @@ docs/
 - [x] **Secuencia de cortes por tablero** — lista guillotina paso a paso (panel, corte, medida, pieza) en la app y en el PDF
 - [x] **Habilitar / deshabilitar elementos** — tableros y piezas se conservan en el proyecto aunque no participen en la optimización
 - [x] **Orden del PDF configurable** — las secuencias de cortes pueden ir al final del reporte (predeterminado) o junto a cada tablero
+- [x] **Dirección de veta** — veta en tablero y pieza; las piezas con veta conservan la orientación obligatoria
+- [x] **Refile y kerf X/Y** — margen descartado en los cuatro bordes y grosor de corte independiente por eje
+- [x] **Numeración de piezas** — número de paso visible en canvas, PNG, SVG y PDF
+- [x] **Exportar layout PNG / SVG** — todos los tableros apilados, además del PDF
+- [x] **Múltiples proyectos** — guardar, abrir y eliminar trabajos con nombre y fecha
+- [x] **Retazos reutilizables** — sobrantes ≥ 2 % del tablero convertibles en tableros, agrupados por cantidad
+- [x] **Costo del desperdicio** — desglose del material no aprovechado en el resumen y el PDF
+- [x] **Editar dimensiones y etiqueta de piezas** — además de cantidad, cantos y veta
+- [x] **Tests de MaxRects y retazos** — cobertura de kerf, refile, veta y detección de sobrantes
 
 ### Próximos Pasos
 
@@ -195,20 +244,20 @@ Objetivo: evolucionar de una herramienta personal a un producto que se pueda pub
 - [x] **Secuencia de cortes** — pasos guillotina por panel, en la app y en el PDF
 - [x] **Recálculo automático** — el layout se invalida al editar tableros, piezas o ajustes
 - [x] **Canteado por pieza** — lados con canto, giro automático y metros lineales
-- [ ] **Dirección de veta** — campo de veta en tablero y pieza; las piezas con veta no deben rotar. Es el requisito nº 1 de un carpintero real.
-- [ ] **Recorte de borde (trim) y kerf independiente** — margen de refile por tablero y grosor de corte distinto en X e Y.
-- [ ] **Identificación numerada de piezas** — número de paso visible en cada pieza del canvas y del PDF, para el taller.
-- [ ] **Exportar layout como PNG/SVG** — además del PDF, para pegarlo en WhatsApp o en una orden de trabajo.
-- [ ] **Múltiples proyectos** — nombre, fecha y lista de trabajos guardados (hoy hay un único estado en `localStorage`).
-- [ ] **Retazos reutilizables** — registrar sobrantes aprovechables como tableros disponibles para el siguiente trabajo.
-- [ ] **Costo del desperdicio y ahorro** — desglosar el costo del material no usado y compararlo contra un layout manual.
-- [ ] **Compensar el espesor del canto** en la dimensión de corte (pieza final = corte + canto).
-- [ ] **Editar dimensiones de piezas ya agregadas** — hoy solo se puede cambiar cantidad y cantos.
-- [ ] **Exportar / importar CSV** además de JSON.
+- [x] **Dirección de veta** — campo de veta en tablero y pieza; las piezas con veta no deben rotar. Es el requisito nº 1 de un carpintero real.
+- [x] **Recorte de borde (trim) y kerf independiente** — margen de refile por tablero y grosor de corte distinto en X e Y.
+- [x] **Identificación numerada de piezas** — número de paso visible en cada pieza del canvas y del PDF, para el taller.
+- [x] **Exportar layout como PNG/SVG** — además del PDF, para pegarlo en WhatsApp o en una orden de trabajo.
+- [x] **Múltiples proyectos** — nombre, fecha y lista de trabajos guardados.
+- [x] **Retazos reutilizables** — registrar sobrantes aprovechables como tableros disponibles para el siguiente trabajo.
+- [x] **Costo del desperdicio y ahorro** — desglosar el costo del material no usado.
+- [x] **Compensar el espesor del canto** en la dimensión de corte (pieza final = corte + canto).
+- [x] **Editar dimensiones de piezas ya agregadas** — ancho, alto, etiqueta, cantidad, cantos y veta.
+- [x] **Exportar / importar CSV** además de JSON.
 
 #### 2. Calidad y confianza
 
-- [ ] Tests unitarios para **MaxRects** (hoy solo Guillotine tiene tests).
+- [x] Tests unitarios para **MaxRects**.
 - [ ] Test de invariantes: ninguna pieza se solapa y siempre se respeta el kerf.
 - [ ] Tests E2E del flujo completo (agregar piezas → optimizar → exportar) con Playwright.
 - [ ] Benchmarks de eficiencia con casos conocidos (closet, cocina, escritorio).

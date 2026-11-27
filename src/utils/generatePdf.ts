@@ -4,6 +4,7 @@ import { getPieceColorRgb } from './pieceColor'
 import { edgesLabel, hasEdges, summarizeEdgeBanding, unplacedSummary } from './edges'
 import { cutOrientationLabel, numberPanelCuts } from './cutSequence'
 import { activeBoards, activePieces } from './active'
+import { GRAIN_SHORT } from './grain'
 import {
   areaToM2,
   formatMoney,
@@ -117,18 +118,24 @@ export function generatePdf(
   const edgeMeters = lengthToMeters(solution.totalEdgeLength, unit)
   const boardAreaM2 = areaToM2(solution.results.reduce((s, r) => s + r.totalArea, 0), unit)
   const boardCost = boardAreaM2 * (settings.boardCostPerM2 || 0)
+  const wasteAreaM2 = areaToM2(
+    solution.results.reduce((sum, r) => sum + (r.totalArea - r.usedArea), 0),
+    unit,
+  )
+  const wasteCost = wasteAreaM2 * (settings.boardCostPerM2 || 0)
   const edgeCost = edgeMeters * (settings.edgeCostPerMeter || 0)
   const summaryRows: [string, string][] = [
     ['Tableros utilizados', String(solution.results.length)],
     ['Piezas colocadas', String(totalPlaced)],
     ['Piezas sin colocar', String(solution.unplacedPieces.length)],
     ['Eficiencia promedio', `${(solution.totalEfficiency * 100).toFixed(1)}%`],
-    ['Grosor de cuchilla', `${formatNumber(settings.bladeThickness)} ${unitLabel(unit)}`],
+    ['Cuchilla X × Y', `${formatNumber(settings.kerfX)} × ${formatNumber(settings.kerfY)} ${unitLabel(unit)}`],
     ['Canto total', formatMeters(edgeMeters)],
   ]
   if (settings.boardCostPerM2 > 0 || settings.edgeCostPerMeter > 0) {
     summaryRows.push(
       ['Costo de material', formatMoney(boardCost, settings.currency)],
+      ['Costo del desperdicio', formatMoney(wasteCost, settings.currency)],
       ['Costo de canto', formatMoney(edgeCost, settings.currency)],
       ['Costo total estimado', formatMoney(boardCost + edgeCost, settings.currency)],
     )
@@ -151,27 +158,34 @@ export function generatePdf(
   // Boards table
   table(
     'Tableros',
-    ['Material', 'Ancho', 'Alto', 'Cantidad', `Área total (m²)`],
-    [2, 55, 88, 118, 148],
-    usableBoards.map(b => [
-      b.material || '—',
-      formatNumber(b.width),
-      formatNumber(b.height),
-      String(b.quantity),
-      formatNumber(areaToM2(b.width * b.height * b.quantity, unit), 3),
-    ]),  )
+    ['Material', 'Ancho', 'Alto', 'Cant.', 'Veta', 'Refile', 'Área útil (m²)'],
+    [2, 42, 64, 84, 104, 124, 152],
+    usableBoards.map(b => {
+      const usable = Math.max(0, b.width - b.trim * 2) * Math.max(0, b.height - b.trim * 2)
+      return [
+        b.material || '—',
+        formatNumber(b.width),
+        formatNumber(b.height),
+        String(b.quantity),
+        GRAIN_SHORT[b.grain],
+        b.trim > 0 ? formatNumber(b.trim) : '—',
+        formatNumber(areaToM2(usable * b.quantity, unit), 3),
+      ]
+    }),
+  )
 
   // Pieces table
   table(
     `Piezas requeridas (${unitLabel(unit)})`,
-    ['Etiqueta', 'Ancho', 'Alto', 'Cantidad', 'Rotación', 'Canto'],
-    [2, 52, 78, 100, 124, 152],
+    ['Etiqueta', 'Ancho', 'Alto', 'Cant.', 'Rotación', 'Veta', 'Canto'],
+    [2, 44, 66, 86, 106, 126, 152],
     usablePieces.map(p => [
       p.label || '—',
       formatNumber(p.width),
       formatNumber(p.height),
       String(p.quantity),
       p.canRotate ? 'Sí' : 'No',
+      p.grain ? 'Sí' : '—',
       edgesLabel(p.edges),
     ]),
   )
@@ -259,6 +273,10 @@ export function generatePdf(
     font(9)
     doc.setTextColor(80)
     doc.text(`Dimensiones: ${formatNumber(result.boardWidth)} × ${formatNumber(result.boardHeight)} ${unitLabel(unit)}`, M, y)
+    y += 4
+    const grainText = result.grain === 'width' ? 'Veta horizontal ↔' : result.grain === 'height' ? 'Veta vertical ↕' : 'Sin veta'
+    const trimText = result.trim > 0 ? ` · Refile ${formatNumber(result.trim)} ${unitLabel(unit)}` : ''
+    doc.text(`${grainText}${trimText}`, M, y)
     doc.text(`Eficiencia: ${(result.efficiency * 100).toFixed(1)}%`, PAGE_W - M, y, { align: 'right' })
     y += 4
     hLine()
@@ -278,6 +296,18 @@ export function generatePdf(
     doc.setLineWidth(0.3)
     doc.rect(ox, y, drawW, drawH, 'FD')
 
+    // Zona descartada por refile
+    if (result.trim > 0) {
+      doc.setDrawColor(175, 150, 120)
+      doc.setLineWidth(0.2)
+      doc.rect(
+        ox + result.trim * scale,
+        y + result.trim * scale,
+        Math.max(0, drawW - result.trim * 2 * scale),
+        Math.max(0, drawH - result.trim * 2 * scale),
+      )
+    }
+
     // Draw pieces
     result.placedPieces.forEach(pp => {
       const [r, g, b] = getPieceColorRgb(pp.width, pp.height)
@@ -290,6 +320,14 @@ export function generatePdf(
       doc.setDrawColor(255, 255, 255)
       doc.setLineWidth(0.4)
       doc.rect(px, py, pw, ph, 'FD')
+
+      // Número de pieza para el taller
+      if (pw > 8 && ph > 5) {
+        doc.setFont('helvetica', 'bold')
+        doc.setFontSize(4.6)
+        doc.setTextColor(255, 255, 255)
+        doc.text(`#${pp.step}`, px + 1.4, py + 3.4)
+      }
 
       // Label inside piece if it fits
       if (pw > 8 && ph > 5) {
@@ -322,7 +360,7 @@ export function generatePdf(
     const totalM2 = formatNumber(areaToM2(result.totalArea, unit), 4)
     const wasteM2 = formatNumber(areaToM2(result.totalArea - result.usedArea, unit), 4)
     doc.text(
-      `Área usada: ${usedM2} m²   ·   Total: ${totalM2} m²   ·   Desperdicio: ${wasteM2} m²   ·   Canto: ${formatNumber(lengthToMeters(result.edgeLength, unit))} m`,
+      `Área usada: ${usedM2} m²   ·   Útil: ${totalM2} m²   ·   Desperdicio: ${wasteM2} m²   ·   Canto: ${formatNumber(lengthToMeters(result.edgeLength, unit))} m`,
       M, y,
     )
     y += 10
@@ -339,8 +377,8 @@ export function generatePdf(
     doc.rect(M, y - 4.5, CW, 7, 'F')
     font(7, 'bold')
     doc.setTextColor(70)
-    const pHeaders = ['', 'Etiqueta', 'Ancho', 'Alto', 'Pos X', 'Pos Y', 'Girada', 'Canto']
-    const pColX =    [2,  8,         48,      66,    84,      104,    124,      148]
+    const pHeaders = ['', '#', 'Etiqueta', 'Ancho', 'Alto', 'Pos X', 'Pos Y', 'Girada', 'Canto']
+    const pColX =    [2, 10,  24,        58,      76,    94,      114,    134,      156]
     pHeaders.forEach((h, i) => doc.text(h, M + pColX[i], y))
     y += 7
 
@@ -358,7 +396,7 @@ export function generatePdf(
       doc.rect(M + 2, y - 3.5, 3.5, 3.5, 'F')
 
       doc.setTextColor(34)
-      const cells = [pp.label, formatNumber(pp.width), formatNumber(pp.height), formatNumber(pp.x), formatNumber(pp.y), pp.rotated ? 'Sí' : 'No', edgesLabel(pp.edges)]
+      const cells = [String(pp.step), pp.label, formatNumber(pp.width), formatNumber(pp.height), formatNumber(pp.x), formatNumber(pp.y), pp.rotated ? 'Sí' : 'No', edgesLabel(pp.edges)]
       cells.forEach((v, ci2) => doc.text(v, M + pColX[ci2 + 1], y))
       y += 7
     })

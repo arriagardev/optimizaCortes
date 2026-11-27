@@ -17,6 +17,7 @@ export function PieceForm({ unit, onAdd }: Props) {
   const [label, setLabel] = useState('')
   const [quantity, setQuantity] = useState('1')
   const [canRotate, setCanRotate] = useState(true)
+  const [grain, setGrain] = useState(false)
   const [edges, setEdges] = useState<PieceEdges>({ ...NO_EDGES })
   const [error, setError] = useState('')
 
@@ -34,7 +35,7 @@ export function PieceForm({ unit, onAdd }: Props) {
       return
     }
     setError('')
-    onAdd({ width: w, height: h, label: label || `${width}×${height}`, quantity: qty, canRotate, edges, enabled: true })
+    onAdd({ width: w, height: h, label: label || `${width}×${height}`, quantity: qty, canRotate, edges, grain, enabled: true })
     setLabel('')
     setQuantity('1')
   }
@@ -61,6 +62,12 @@ export function PieceForm({ unit, onAdd }: Props) {
         <label>
           <input type="checkbox" checked={canRotate} onChange={e => setCanRotate(e.target.checked)} />
           {' '}Permitir rotación
+        </label>
+      </div>
+      <div className="form-row form-row--check">
+        <label>
+          <input type="checkbox" checked={grain} onChange={e => setGrain(e.target.checked)} />
+          {' '}Requiere veta (no girar contra la veta)
         </label>
       </div>
 
