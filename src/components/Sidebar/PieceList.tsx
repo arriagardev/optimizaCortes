@@ -1,7 +1,7 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import type { Piece } from '../../types'
 import { getPieceColor } from '../../utils/pieceColor'
-import { countEdges, hasEdges, pieceEdgeLength } from '../../utils/edges'
+import { hasEdges, pieceEdgeLength } from '../../utils/edges'
 import { lengthToMeters, formatNumber, unitLabel, type Unit } from '../../utils/units'
 import { EdgePresets, EdgeSelector } from '../EdgeSelector'
 
@@ -11,6 +11,76 @@ interface Props {
   onRemove: (id: string) => void
   onUpdate: (id: string, updates: Partial<Piece>) => void
   onReorder: (fromIdx: number, toIdx: number) => void
+}
+
+interface DimensionEditorProps {
+  piece: Piece
+  unit: Unit
+  onUpdate: (id: string, updates: Partial<Piece>) => void
+}
+
+/** Edición de dimensiones y etiqueta; confirma al salir del campo para no llenar el historial. */
+function DimensionEditor({ piece, unit, onUpdate }: DimensionEditorProps) {
+  const [width, setWidth] = useState(String(piece.width))
+  const [height, setHeight] = useState(String(piece.height))
+  const [label, setLabel] = useState(piece.label)
+
+  useEffect(() => {
+    setWidth(String(piece.width))
+    setHeight(String(piece.height))
+    setLabel(piece.label)
+  }, [piece.width, piece.height, piece.label])
+
+  function commit() {
+    const w = Number(width)
+    const h = Number(height)
+    if (!(w > 0) || !(h > 0)) {
+      setWidth(String(piece.width))
+      setHeight(String(piece.height))
+      return
+    }
+    onUpdate(piece.id, { width: w, height: h, label: label.trim() || piece.label })
+  }
+
+  return (
+    <div className="item-detail__dims">
+      <label>
+        Ancho
+        <input
+          type="number"
+          value={width}
+          min="0"
+          step="0.1"
+          onChange={e => setWidth(e.target.value)}
+          onBlur={commit}
+          onKeyDown={e => e.key === 'Enter' && commit()}
+        />
+      </label>
+      <label>
+        Alto
+        <input
+          type="number"
+          value={height}
+          min="0"
+          step="0.1"
+          onChange={e => setHeight(e.target.value)}
+          onBlur={commit}
+          onKeyDown={e => e.key === 'Enter' && commit()}
+        />
+      </label>
+      <label className="item-detail__label">
+        Etiqueta
+        <input
+          type="text"
+          value={label}
+          onChange={e => setLabel(e.target.value)}
+          onBlur={commit}
+          onKeyDown={e => e.key === 'Enter' && commit()}
+        />
+      </label>
+      <span className="item-detail__unit">{unitLabel(unit)}</span>
+    </div>
+  )
 }
 
 export function PieceList({ pieces, unit, onRemove, onUpdate, onReorder }: Props) {
@@ -127,19 +197,21 @@ export function PieceList({ pieces, unit, onRemove, onUpdate, onReorder }: Props
               <span className="item-dims">
                 {formatNumber(piece.width)} × {formatNumber(piece.height)} {unitLabel(unit)}
               </span>
+              {piece.grain && <span className="grain-chip" title="Requiere veta">↔ veta</span>}
               <button
                 type="button"
                 className={`edge-chip${banded ? ' edge-chip--on' : ''}`}
                 aria-expanded={isExpanded}
-                title="Editar canteado, orden y duplicar"
+                title="Editar dimensiones, canteado, veta y orden"
                 onClick={() => setExpanded(current => (current === piece.id ? null : piece.id))}
               >
-                {banded ? `Canto · ${countEdges(piece.edges)}` : 'Canto —'}
+                Editar
               </button>
             </div>
 
             {isExpanded && (
               <div className="item-detail" onMouseDown={() => setDragReady(null)}>
+                <DimensionEditor piece={piece} unit={unit} onUpdate={onUpdate} />
                 <div className="item-detail__edges">
                   <EdgeSelector
                     compact
@@ -151,9 +223,26 @@ export function PieceList({ pieces, unit, onRemove, onUpdate, onReorder }: Props
                   <EdgePresets value={piece.edges} onChange={edges => onUpdate(piece.id, { edges })} />
                 </div>
                 <div className="item-detail__meta">
+                  <label className="item-detail__check">
+                    <input
+                      type="checkbox"
+                      checked={piece.grain}
+                      onChange={e => onUpdate(piece.id, { grain: e.target.checked })}
+                    />
+                    {' '}Requiere veta
+                  </label>
+                  <label className="item-detail__check">
+                    <input
+                      type="checkbox"
+                      checked={piece.canRotate}
+                      onChange={e => onUpdate(piece.id, { canRotate: e.target.checked })}
+                      disabled={piece.grain}
+                    />
+                    {' '}Permitir rotación
+                  </label>
                   <span>
                     {banded
-                      ? `${formatNumber(lengthToMeters(pieceEdgeLength(piece), unit))} m por pieza · ${formatNumber(
+                      ? `${formatNumber(lengthToMeters(pieceEdgeLength(piece), unit))} m de canto por pieza · ${formatNumber(
                           lengthToMeters(pieceEdgeLength(piece) * piece.quantity, unit),
                         )} m en total`
                       : 'Esta pieza no lleva canto'}

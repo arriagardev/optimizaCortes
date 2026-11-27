@@ -4,6 +4,7 @@ import { Sidebar } from './components/Sidebar/Sidebar'
 import { CutCanvas } from './components/Canvas/CutCanvas'
 import { SummaryPanel } from './components/Canvas/SummaryPanel'
 import { exportProject, importProject } from './utils/projectFile'
+import { exportPiecesCsv, importPiecesCsv } from './utils/csvFile'
 import './App.css'
 
 export default function App() {
@@ -38,6 +39,18 @@ export default function App() {
     )
   }
 
+  function handleExportCsv() {
+    exportPiecesCsv(store.pieces)
+  }
+
+  function handleImportCsvFile(file: File) {
+    importPiecesCsv(
+      file,
+      newPieces => store.addPieces(newPieces),
+      msg => alert(msg),
+    )
+  }
+
   return (
     <div className="app-layout">
       <div
@@ -49,6 +62,7 @@ export default function App() {
         boards={store.boards}
         pieces={store.pieces}
         settings={store.settings}
+        projects={store.projects}
         isOpen={sidebarOpen}
         onAddBoard={store.addBoard}
         onUpdateBoard={store.updateBoard}
@@ -59,9 +73,14 @@ export default function App() {
         onReorderPiece={store.reorderPieces}
         onChangeSettings={store.setSettings}
         onChangeUnit={store.changeUnit}
+        onSaveProject={store.saveProject}
+        onOpenProject={store.openProject}
+        onDeleteProject={store.deleteProject}
         onSolutionReady={store.setSolution}
         onExport={handleExport}
         onImportFile={handleImportFile}
+        onExportCsv={handleExportCsv}
+        onImportCsvFile={handleImportCsvFile}
         onClose={() => setSidebarOpen(false)}
       />
 
@@ -79,6 +98,7 @@ export default function App() {
             boards={store.boards}
             pieces={store.pieces}
             settings={store.settings}
+            onAddBoards={store.addBoards}
           />
         )}
         <CutCanvas results={store.solution?.results ?? []} unit={store.settings.unit} />

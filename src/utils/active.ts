@@ -1,9 +1,15 @@
 import type { Board, Piece } from '../types'
 import { normalizePieces } from './edges'
+import { normalizeGrain } from './grain'
 
 /** Agrega los campos nuevos a tableros guardados o importados con versiones anteriores. */
 export function normalizeBoards(boards: Board[]): Board[] {
-  return boards.map(b => ({ ...b, enabled: b.enabled !== false }))
+  return boards.map(b => ({
+    ...b,
+    grain: normalizeGrain(b.grain),
+    trim: Number.isFinite(b.trim) && b.trim > 0 ? b.trim : 0,
+    enabled: b.enabled !== false,
+  }))
 }
 
 /** Tableros que participan en la optimización (los deshabilitados se conservan). */

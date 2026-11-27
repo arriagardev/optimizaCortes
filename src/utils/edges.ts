@@ -33,6 +33,7 @@ export function normalizePieces(pieces: Piece[]): Piece[] {
   return pieces.map(p => ({
     ...p,
     edges: normalizeEdges(p.edges),
+    grain: Boolean(p.grain),
     enabled: p.enabled !== false,
   }))
 }

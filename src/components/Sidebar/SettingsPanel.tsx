@@ -11,15 +11,38 @@ export function SettingsPanel({ settings, onChange, onChangeUnit }: Props) {
   return (
     <div className="form">
       <div className="form-row">
-        <label>Espesor de sierra</label>
+        <label>Cuchilla vertical (X)</label>
         <input
           type="number"
-          value={settings.bladeThickness}
+          value={settings.kerfX}
           min="0"
           step="0.5"
-          onChange={e => onChange({ ...settings, bladeThickness: Number(e.target.value) })}
+          onChange={e => onChange({ ...settings, kerfX: Number(e.target.value) })}
         />
       </div>
+      <div className="form-row">
+        <label>Cuchilla horizontal (Y)</label>
+        <input
+          type="number"
+          value={settings.kerfY}
+          min="0"
+          step="0.5"
+          onChange={e => onChange({ ...settings, kerfY: Number(e.target.value) })}
+        />
+      </div>
+      <div className="form-row">
+        <label>Espesor del canto</label>
+        <input
+          type="number"
+          value={settings.edgeThickness}
+          min="0"
+          step="0.1"
+          onChange={e => onChange({ ...settings, edgeThickness: Number(e.target.value) })}
+        />
+      </div>
+      <p className="form-hint">
+        Grosor del canto que se resta a la dimensión de corte en los lados donde se pega (pieza final = corte + canto).
+      </p>
       <div className="form-row">
         <label>Unidad</label>
         <select

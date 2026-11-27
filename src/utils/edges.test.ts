@@ -22,6 +22,7 @@ function piece(p: Partial<Piece> & { id: string }): Piece {
     quantity: 1,
     canRotate: true,
     edges: allFalse,
+    grain: false,
     enabled: true,
     ...p,
   }
@@ -36,6 +37,7 @@ function placed(p: Partial<PlacedPiece> & { pieceId: string }): PlacedPiece {
     height: 400,
     rotated: false,
     label: p.pieceId,
+    step: 1,
     edges: allFalse,
     ...p,
   }
