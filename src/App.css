@@ -896,30 +896,41 @@ body {
 @media (max-width: 768px) {
   body,
   #root {
-    height: 100dvh;
-    overflow: hidden;
+    height: auto;
+    min-height: 100vh;
+    overflow-x: hidden;
+    overflow-y: auto;
   }
 
   .app-layout {
     flex-direction: column;
-    height: 100dvh;
+    height: auto;
+    min-height: 100vh;
   }
 
-  /* Sidebar becomes a fixed overlay */
+  /* Sidebar becomes a fixed overlay drawer */
   .sidebar {
     position: fixed;
     top: 0;
     left: 0;
     width: min(85vw, 320px);
     height: 100dvh;
-    z-index: 100;
+    z-index: 200;
     transform: translateX(-100%);
     transition: transform 0.25s ease;
-    box-shadow: 4px 0 20px rgba(0, 0, 0, 0.2);
+    box-shadow: 4px 0 20px rgba(0, 0, 0, 0.25);
   }
 
   .sidebar.open {
     transform: translateX(0);
+  }
+
+  .sidebar-backdrop {
+    display: none;
+    position: fixed;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.45);
+    z-index: 199;
   }
 
   .sidebar-backdrop.visible {
@@ -938,8 +949,10 @@ body {
 
   /* Tighter main area */
   .main-area {
-    padding: 8px;
-    gap: 8px;
+    padding: 10px;
+    gap: 10px;
+    overflow: visible;
+    flex: none;
   }
 
   /* Summary stats wrap on narrow screens */
@@ -956,7 +969,7 @@ body {
   /* Canvas min heights so it's usable on small screens */
   .canvas-wrapper,
   .canvas-empty {
-    min-height: 200px;
+    min-height: 280px;
   }
 }
 
@@ -965,73 +978,10 @@ body {
   display: none;
 }
 
-.sidebar-backdrop {
-  display: none;
-}
-
 /* ── Responsive: ≤ 640px ── */
 @media (max-width: 640px) {
-  body { overflow: auto; }
-  #root { height: auto; min-height: 100vh; }
-
-  .app-layout { flex-direction: column; height: auto; min-height: 100vh; }
-
-  .mobile-header {
-    display: flex;
-    align-items: center;
-    gap: 10px;
-    padding: 10px 14px;
-    background: #fff;
-    border-bottom: 1px solid #dde1e7;
-    font-size: 1rem;
-    font-weight: 700;
-    color: #1a56db;
-    flex-shrink: 0;
-  }
-
-  .btn-menu {
-    background: none;
-    border: none;
-    font-size: 1.4rem;
-    cursor: pointer;
-    color: #333;
-    padding: 0;
-    line-height: 1;
-  }
-
-  .sidebar {
-    position: fixed;
-    inset: 0 auto 0 0;
-    width: 300px;
-    z-index: 200;
-    transform: translateX(-100%);
-    transition: transform 0.25s ease;
-    box-shadow: 4px 0 20px rgba(0, 0, 0, 0.18);
-  }
-
-  .sidebar.open { transform: translateX(0); }
-
-  .sidebar-close { display: block; }
-
-  .sidebar-backdrop {
-    display: block;
-    position: fixed;
-    inset: 0;
-    background: rgba(0, 0, 0, 0.4);
-    z-index: 199;
-  }
-
-  .main-area {
-    padding: 10px;
-    gap: 10px;
-    overflow: visible;
-    flex: none;
-  }
-
-  .canvas-wrapper { min-height: 360px; }
-
+  .canvas-wrapper { min-height: 320px; }
   .summary-stats { gap: 14px; flex-wrap: wrap; }
-
   .cut-sequence__list li { grid-template-columns: 24px 1fr auto; }
   .cut-sequence__piece { display: none; }
 }
